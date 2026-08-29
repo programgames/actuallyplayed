@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "./gradlew build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Test (core)",
+      "type": "shell",
+      "command": "./gradlew :core:test",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Minecraft",
+      "type": "shell",
+      "command": "./gradlew :forge-1.12:runClient",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Minecraft (wait for debugger)",
+      "detail": "Suspends the JVM at startup and listens on port 5005. Then start the 'Attach to Minecraft' configuration.",
+      "type": "shell",
+      "command": "./gradlew :forge-1.12:runClient --debug-jvm",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

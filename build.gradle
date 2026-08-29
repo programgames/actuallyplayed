@@ -1,0 +1,41 @@
+// Root project: holds no build logic of its own.
+// It only shares the coordinates common to both modules.
+// The ForgeGradle plugin is applied ONLY in forge-1.12/, so that `core` stays a plain
+// Java module, compilable and testable without Minecraft.
+
+allprojects {
+    group = 'fr.julien.playtimetracker'
+    version = "${mcVersion}-${modVersion}"
+
+    // Without this, Gradle compiles using the platform default encoding (windows-1252
+    // here), turning every non-ASCII character in the source into mojibake — seen in game
+    // on an icon prefix that rendered as "3Œ".
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+
+    // IDE import: `gradlew eclipse` and `gradlew idea` generate the project files for
+    // both modules. See README.md, "Développer sur le projet".
+    apply plugin: 'eclipse'
+    apply plugin: 'idea'
+}
+
+idea {
+    project {
+        jdkName = '1.8'
+        languageLevel = '1.8'
+        vcs = 'Git'
+    }
+}
+
+// Guard rail: ForgeGradle 2.3 and Gradle 4.x only run under JDK 8. Failing here with a
+// clear message beats an inscrutable stack trace halfway through setupDecompWorkspace.
+def javaVersion = System.getProperty('java.version')
+if (!javaVersion.startsWith('1.8')) {
+    throw new GradleException(
+        "JDK 8 requis pour ForgeGradle 2.3, mais Gradle tourne sous Java ${javaVersion}.\n" +
+        "  Corrigez JAVA_HOME, par exemple :\n" +
+        "    \$env:JAVA_HOME = 'C:\\Program Files\\Eclipse Adoptium\\jdk-8.0.472.8-hotspot'\n" +
+        "  or set org.gradle.java.home in gradle.properties."
+    )
+}

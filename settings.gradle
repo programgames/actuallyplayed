@@ -1,0 +1,8 @@
+rootProject.name = 'playtimetracker'
+
+// Pure business logic, with no dependency on Minecraft.
+include 'core'
+
+// Forge adapter layer for Minecraft 1.12.2.
+// Future versions will be added alongside it (forge-1.20, ...) without touching `core`.
+include 'forge-1.12'

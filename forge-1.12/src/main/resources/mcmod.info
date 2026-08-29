@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "playtimetracker",
+    "name": "Playtime Tracker",
+    "description": "Measures how long you spend on each server and in each singleplayer world, telling time you actually played apart from time you were AFK. Client-side only, works on any server. Open it from the Statistics screen.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["Julien"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]

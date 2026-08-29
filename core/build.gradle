@@ -1,0 +1,62 @@
+// Module `core`: the business logic.
+//
+// HARD RULE: no Minecraft or Forge dependency here. This module must stay compilable and
+// testable in complete isolation — that is what will make porting to future Minecraft
+// versions cheap. The `checkNoMinecraftImports` task below enforces it at build time, so
+// the rule survives a distracted afternoon instead of relying on discipline.
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Gson already sits on Minecraft's classpath, so bundling it again would be redundant.
+    // Declared compile-only here and provided at runtime by the game.
+    compileOnly 'com.google.code.gson:gson:2.8.0'
+
+    testCompile 'junit:junit:4.12'
+    testCompile 'com.google.code.gson:gson:2.8.0'
+}
+
+test {
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+    }
+}
+
+task checkNoMinecraftImports {
+    description = 'Fails the build if core imports Minecraft or Forge.'
+    group = 'verification'
+
+    def sources = fileTree(dir: 'src', include: '**/*.java')
+    inputs.files sources
+
+    doLast {
+        def forbidden = ~/^\s*import\s+(net\.minecraft|net\.minecraftforge)\./
+        def offenders = []
+
+        sources.each { file ->
+            file.readLines().eachWithIndex { line, index ->
+                if (forbidden.matcher(line).find()) {
+                    offenders << "  ${file.name}:${index + 1}  ${line.trim()}"
+                }
+            }
+        }
+
+        if (!offenders.isEmpty()) {
+            throw new GradleException(
+                    'The `core` module must never depend on Minecraft.' +
+                    System.lineSeparator() +
+                    'Move this code into forge-1.12/ so core stays portable:' +
+                    System.lineSeparator() +
+                    offenders.join(System.lineSeparator()))
+        }
+    }
+}
+
+check.dependsOn checkNoMinecraftImports

@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "//": "ForgeGradle runs Minecraft in a forked JVM, so no IDE can launch it directly. The task starts it suspended and this configuration attaches to it.",
+      "type": "java",
+      "name": "Attach to Minecraft",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005,
+      "preLaunchTask": "Run Minecraft (wait for debugger)"
+    },
+    {
+      "type": "java",
+      "name": "Engine tests (core)",
+      "request": "launch",
+      "mainClass": "",
+      "projectName": "core"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "// Note": "ForgeGradle 2.3 and Gradle 4.10.3 only run under JDK 8. VS Code must import the project with that JDK, whatever is used elsewhere.",
+  "java.import.gradle.java.home": "C:\Program Files\Eclipse Adoptium\jdk-8.0.472.8-hotspot",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-1.8",
+      "path": "C:\Program Files\Eclipse Adoptium\jdk-8.0.472.8-hotspot",
+      "default": true
+    }
+  ],
+  "java.import.gradle.wrapper.enabled": true,
+  "files.encoding": "utf8",
+  "files.exclude": {
+    "**/build": true,
+    "**/.gradle": true,
+    "forge-1.12/run": true
+  }
+}

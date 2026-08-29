@@ -1,0 +1,83 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net/' }
+        mavenCentral()
+    }
+    dependencies {
+        // ForgeGradle 2.3 is the last line that supports Minecraft 1.12.2.
+        // A published, pinned version rather than 2.3-SNAPSHOT, for a reproducible build.
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3.10'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+archivesBaseName = 'playtimetracker'
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+// TRAP: inside the `minecraft { }` block, the Groovy delegate is the ForgeGradle
+// extension, which has its OWN `mcVersion` and `forgeVersion` properties. Writing
+// `version = "${mcVersion}-${forgeVersion}"` in there reads the (empty) extension rather
+// than gradle.properties, producing the error `forge:1.12.2-null`.
+// The project properties are therefore resolved out here, outside the block.
+def targetMinecraft = "${project.mcVersion}-${project.forgeVersion}".toString()
+def targetMappings = project.mcpMappings.toString()
+
+minecraft {
+    version = targetMinecraft
+    runDir = 'run'
+    mappings = targetMappings
+
+    // Substitutes the mod version into Reference.VERSION at build time, so it lives in
+    // gradle.properties only.
+    replace '@MOD_VERSION@', project.version.toString()
+}
+
+dependencies {
+    compile project(':core')
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'mcversion', project.minecraft.version
+
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.version, 'mcversion': project.minecraft.version
+    }
+
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+// `core` is not published separately: its classes are bundled straight into the mod jar.
+jar {
+    from project(':core').sourceSets.main.output
+
+    manifest {
+        attributes([
+            'Specification-Title'     : 'playtimetracker',
+            'Specification-Version'   : '1',
+            'Implementation-Title'    : project.name,
+            'Implementation-Version'  : project.version,
+            'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+// The development username is random by default (`Player640`, `Player123`, ...) and the
+// offline UUID is derived from it. Every `runClient` would therefore create a different
+// account, and the previous run's data would vanish from the stats screen.
+// A fixed username keeps test sessions comparable across launches.
+// The sources jar would otherwise ship only the Forge layer, which is the thin half of the
+// mod. Bundling core's sources makes it self-contained and actually readable.
+afterEvaluate {
+    tasks.matching { it.name == 'sourceJar' }.all {
+        from project(':core').sourceSets.main.allJava
+    }
+    tasks.matching { it.name == 'runClient' }.all {
+        args '--username', 'PlaytimeDev'
+    }
+}

@@ -1,0 +1,61 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ForgeGradle 2.3 and Gradle 4.10.3 do not run on any JDK newer than 8.
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      # Decompiling Minecraft takes 10-20 minutes. Caching it turns every run after the
+      # first into a couple of minutes.
+      - name: Cache Gradle and ForgeGradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.gradle/minecraft
+          key: ${{ runner.os }}-forge-${{ hashFiles('**/*.gradle', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-forge-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Runs first and needs no Minecraft at all: if the engine is broken, say so in
+      # seconds rather than after a full decompile.
+      - name: Test the engine
+        run: ./gradlew :core:check --no-daemon --stacktrace
+
+      - name: Set up the Forge workspace
+        run: ./gradlew setupCiWorkspace --no-daemon
+
+      - name: Build the mod
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Upload the jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtimetracker
+          path: forge-1.12/build/libs/*.jar
+          if-no-files-found: error
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: core/build/reports/tests/
