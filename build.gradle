@@ -15,7 +15,7 @@ allprojects {
     }
 
     // IDE import: `gradlew eclipse` and `gradlew idea` generate the project files for
-    // both modules. See README.md, "Développer sur le projet".
+    // both modules. See README.md, "Developing on the project".
     apply plugin: 'eclipse'
     apply plugin: 'idea'
 }

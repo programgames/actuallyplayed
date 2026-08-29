@@ -1,192 +1,190 @@
 # Playtime Tracker
 
-**Combien de temps as-tu *vraiment* joué ?**
+**How long have you *actually* played?**
 
-Minecraft sait compter les minutes où le jeu était ouvert. Il ne sait pas faire la
-différence entre une heure passée à construire et une heure passée à faire chauffer une
-ferme pendant que tu regardais une vidéo. Playtime Tracker fait cette différence.
+Minecraft counts the minutes the game was open. It cannot tell an hour spent building apart
+from an hour spent running a farm while you watched a video. Playtime Tracker can.
 
-Le mod mesure le temps passé sur chaque serveur et dans chaque monde solo, en séparant
-strictement **le temps réellement joué** du **temps AFK**.
+The mod measures time spent on each server and in each singleplayer world, strictly
+separating **time actually played** from **time spent AFK**.
 
 - Minecraft 1.12.2 · Forge 14.23.5.2847+
-- **Client uniquement** — fonctionne sur n'importe quel serveur, sans que celui-ci ait le mod
-- Aucun réseau, aucune télémétrie, tout reste sur ta machine
+- **Client-side only** — works on any server, without that server having the mod
+- No network traffic, no telemetry; everything stays on your machine
+
+*[Version française](README.fr.md)*
 
 ---
 
-## Ce que ça fait
+## What it does
 
-Le compteur tourne pendant que tu joues. Dès qu'il ne détecte plus d'activité pendant
-5 minutes, il s'arrête — **et il retire les 5 minutes qu'il venait de compter**. Elles
-basculent dans le compteur AFK. Tu ne gagnes pas de temps de jeu en t'absentant.
+The counter runs while you play. As soon as it sees no activity for 5 minutes it stops —
+**and takes back the 5 minutes it had just counted**. They move into the AFK counter. You do
+not earn playtime by walking away.
 
-Ce qui compte comme activité :
+What counts as activity:
 
-| Signal | Détail |
+| Signal | Detail |
 |---|---|
-| Intention de déplacement | Avancer, reculer, strafe, sauter, s'accroupir |
-| Rotation de la caméra | Bouger la vue |
-| Clavier et souris | N'importe quelle touche, clic ou molette, y compris dans un inventaire |
-| Interactions | Casser ou poser un bloc, ouvrir un conteneur, écrire dans le chat |
+| Movement intent | Forward, back, strafe, jump, sneak |
+| Camera rotation | Moving the view |
+| Keyboard and mouse | Any key, click or wheel, including inside an inventory |
+| Interactions | Breaking or placing a block, opening a container, typing in chat |
 
-Et deux cas coupent le compteur **immédiatement**, sans attendre les 5 minutes :
+Two cases stop the counter **immediately**, without waiting for the 5 minutes:
 
-- **Alt-tab** — tu as quitté la fenêtre du jeu
-- **Menu pause en solo** — le monde est gelé, tu ne joues pas
+- **Alt-tab** — you have left the game window
+- **Singleplayer pause menu** — the world is frozen, you are not playing
 
-### Pourquoi ça résiste aux fermes AFK
+### Why AFK farms do not fool it
 
-Le mod lit ton **intention** de déplacement, pas ta position.
+The mod reads your movement **intent**, not your position.
 
-C'est la nuance qui compte. Ta position change en permanence sans que tu fasses quoi que ce
-soit : gravité, courant d'eau, minecart, monture, poussée d'un mob, correction du serveur.
-Or les montages AFK classiques reposent exactement là-dessus — un canal d'eau, une boucle
-de minecart. Un mod qui mesurerait le déplacement te compterait « actif » pendant toute la
-nuit.
+That is the distinction that matters. Your position changes constantly without you doing
+anything: gravity, water currents, minecarts, mounts, a mob shoving you, the server
+correcting you. Classic AFK setups are built on exactly that — a water canal, a minecart
+loop. A mod that measured movement would count you "active" all night long.
 
-Playtime Tracker lit les commandes que tu envoies. Elles sont nulles quand tu es transporté.
-**Un joueur dans un courant d'eau est déclaré AFK au bout du délai, comme il se doit.**
+Playtime Tracker reads the commands you send. They are zero while you are being carried.
+**A player drifting in a water current is marked AFK once the threshold passes, as they
+should be.**
 
 ---
 
 ## Installation
 
-1. Installe [Minecraft Forge](https://files.minecraftforge.net/) pour 1.12.2
-2. Dépose `playtimetracker-1.12.2-x.y.z.jar` dans `.minecraft/mods/`
-3. Lance le jeu
+1. Install [Minecraft Forge](https://files.minecraftforge.net/) for 1.12.2
+2. Drop `playtimetracker-1.12.2-x.y.z.jar` into `.minecraft/mods/`
+3. Start the game
 
-Aucune dépendance. Rien à installer côté serveur.
+No dependencies. Nothing to install server-side.
 
 ---
 
-## Utilisation
+## Usage
 
-En jeu : **Échap → Statistiques → bouton « Temps de jeu »** en haut à droite.
+In game: **Esc → Statistics → the "Playtime" button** in the top right.
 
-L'écran affiche la destination où tu te trouves, et elle seule :
+The screen shows the destination you are in, and only that one:
 
-- **Session en cours** — ton état (en train de jouer / AFK depuis X), temps joué, temps AFK
-- **Total ici** — cumul sur ce serveur ou ce monde, avec le pourcentage réellement joué
-  (vert au-dessus de 80 %, rouge en dessous de 40 %)
-- **Détails** — première connexion, nombre de sessions, durée moyenne, session la plus longue
+- **Current session** — your state (playing / AFK for X), played time, AFK time
+- **Total here** — the running total on this server or world, with the percentage actually
+  played (green above 80 %, red below 40 %)
+- **Details** — first seen, session count, average duration, longest session
 
-Chaque serveur et chaque monde ont leur propre historique. Il t'attend quand tu y reviens.
+Every server and every world keeps its own history. It is waiting for you when you return.
 
 ---
 
 ## Configuration
 
-Deux façons de régler le mod :
+Two ways to change the settings:
 
-- **En jeu** : écran des mods → *Playtime Tracker* → **Config**. Les changements
-  s'appliquent immédiatement, sans redémarrage.
-- **Par fichier** : `.minecraft/config/playtimetracker/playtimetracker.cfg`
+- **In game**: mod list → *Playtime Tracker* → **Config**. Changes apply immediately, with
+  no restart.
+- **By file**: `.minecraft/config/playtimetracker/playtimetracker.cfg`
 
-| Option | Défaut | Ce que ça fait |
+| Option | Default | What it does |
 |---|---|---|
-| `afkThresholdSeconds` | `300` | Inactivité à partir de laquelle le compteur s'arrête. Le temps d'inactivité écoulé est retiré du temps joué et basculé en AFK. |
-| `minSessionSeconds` | `30` | Les sessions plus courtes sont ignorées entièrement, pour que les passages éclair n'encombrent pas les statistiques. `0` pour tout garder. |
-| `autosaveIntervalSeconds` | `60` | Fréquence d'écriture du fichier de données. Détermine aussi ce qu'un plantage peut te coûter au maximum. |
-| `retentionDays` | `90` | Durée de conservation du détail de chaque session. Au-delà, les sessions sont fusionnées en résumés mensuels — **aucun temps n'est perdu**, seul le détail disparaît. |
-| `debugLogging` | `false` | Écrit chaque bascule joué ↔ AFK dans le log. Utile pour vérifier la détection ; le mod est silencieux par défaut. |
+| `afkThresholdSeconds` | `300` | Inactivity after which the counter stops. The elapsed idle time is removed from your played total and moved to AFK. |
+| `minSessionSeconds` | `30` | Shorter sessions are discarded entirely, so brief visits do not clutter your statistics. `0` keeps everything. |
+| `autosaveIntervalSeconds` | `60` | How often the data file is written. This also bounds how much of a running session a crash can cost you. |
+| `retentionDays` | `90` | How long each session is kept in full detail. Older ones are merged into monthly summaries — **no playtime is ever lost**, only the detail. |
+| `debugLogging` | `false` | Logs every played ↔ AFK transition. Useful to check the detection; the mod is silent by default. |
 
 ---
 
-## Tes données
+## Your data
 
-Tout est dans `.minecraft/config/playtimetracker/playtime.json`, en JSON lisible et
-éditable à la main.
+Everything lives in `.minecraft/config/playtimetracker/playtime.json`, as readable,
+hand-editable JSON.
 
 ```
 playtime.json
-└── compte (UUID)
-    └── serveur ou monde
-        ├── sessions détaillées (90 derniers jours)
-        └── résumés mensuels (au-delà)
+└── account (UUID)
+    └── server or world
+        ├── detailed sessions (last 90 days)
+        └── monthly summaries (older)
 ```
 
-Quelques garanties, parce que perdre des mois de statistiques serait absurde :
+A few guarantees, because losing months of statistics would be absurd:
 
-- **Écriture atomique.** Le fichier est écrit à côté puis substitué d'un bloc. Il n'est
-  jamais à moitié écrit, même si le jeu meurt pendant la sauvegarde.
-- **Résistance au plantage.** La session en cours est pré-enregistrée à chaque sauvegarde
-  automatique. Si le jeu plante après trois heures, tu récupères tout sauf la dernière
-  minute.
-- **Fichier abîmé mis de côté, jamais effacé.** Il est renommé en `.corrupt-<horodatage>`
-  et le mod repart proprement, pour que tu puisses tenter une récupération.
-- **Séparation par compte.** L'identité est l'UUID Mojang, pas le pseudo : changer de nom
-  ne coupe pas ton historique en deux.
+- **Atomic writes.** The file is written beside the old one and then swapped in as a whole.
+  It is never half-written, even if the game dies mid-save.
+- **Crash resistance.** The running session is pre-recorded on every autosave. If the game
+  crashes after three hours, you get everything back except the last minute.
+- **A damaged file is set aside, never deleted.** It is renamed to `.corrupt-<timestamp>` and
+  the mod starts cleanly, so you can still attempt a recovery.
+- **Separation by account.** Identity is the Mojang UUID, not the username: changing your
+  name does not cut your history in two.
 
-**Realms n'est pas suivi.** Le client ne reçoit aucun identifiant stable pour une
-connexion Realms — il n'y a rien sur quoi rattacher les données.
-
----
-
-## Questions fréquentes
-
-**Est-ce que ça marche sur les serveurs ?**
-Oui, sur tous. Le mod est purement client : il ne parle jamais au serveur et n'a pas besoin
-d'y être installé. Aucun risque d'être refusé à la connexion.
-
-**Est-ce que fouiller mon inventaire compte comme du jeu ?**
-Oui. Naviguer dans un inventaire, un coffre ou une interface de mod, c'est jouer.
-
-**Et si je meurs et que je laisse l'écran de mort ouvert ?**
-Aucune règle particulière : le délai d'inactivité normal s'applique. Si tu réapparais dans
-la seconde, c'est du temps joué ; si tu pars manger, ça bascule en AFK.
-
-**Un réseau comme Hypixel, c'est une entrée ou plusieurs ?**
-Une seule, identifiée par `hôte:port`. Minecraft 1.12.2 ne donne au client aucun moyen
-fiable de distinguer les sous-serveurs derrière un BungeeCord.
-
-**Le mod m'affiche 30 % de temps réellement joué, c'est normal ?**
-C'est précisément l'information que le mod existe pour donner. À toi de voir ce que tu en
-fais.
+**Realms is not tracked.** The client receives no stable identifier for a Realms connection —
+there is nothing to attach the data to.
 
 ---
 
-## Développer sur le projet
+## FAQ
 
-### Prérequis
+**Does it work on servers?**
+Yes, on all of them. The mod is purely client-side: it never talks to the server and does not
+need to be installed there. It can never get you rejected at login.
 
-**JDK 8 obligatoire.** ForgeGradle 2.3 et Gradle 4.10.3 ne fonctionnent sous aucun JDK plus
-récent. Le build échoue volontairement, avec un message clair, si `JAVA_HOME` pointe
-ailleurs.
+**Does browsing my inventory count as playing?**
+Yes. Navigating an inventory, a chest or a mod GUI is playing.
+
+**What if I die and leave the death screen up?**
+No special rule: the normal idle threshold applies. Respawn within a second and it is played
+time; go and eat and it turns into AFK.
+
+**Is a network like Hypixel one entry or several?**
+One, keyed by `host:port`. Minecraft 1.12.2 gives the client no reliable way to tell
+BungeeCord sub-servers apart.
+
+**It says I actually played 30 % of the time. Is that normal?**
+That is precisely the information the mod exists to give you. What you do with it is your
+call.
+
+---
+
+## Developing on the project
+
+### Prerequisites
+
+**JDK 8 is mandatory.** ForgeGradle 2.3 and Gradle 4.10.3 do not run on any newer JDK. The
+build fails on purpose, with a clear message, if `JAVA_HOME` points elsewhere.
 
 ```bash
-# Vérifier
-java -version   # doit afficher 1.8
+# Check
+java -version   # must report 1.8
 
-# Sinon, pour la session courante (PowerShell)
+# Otherwise, for the current session (PowerShell)
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-8.0.472.8-hotspot"
 ```
 
-### Première configuration
+### First setup
 
 ```bash
-./gradlew setupDecompWorkspace   # une seule fois — télécharge et décompile Minecraft (10 à 20 min)
-./gradlew build                  # compile et produit le jar
-./gradlew :core:test             # tests unitaires du moteur
-./gradlew :forge-1.12:runClient  # lance Minecraft avec le mod
+./gradlew setupDecompWorkspace   # once only — downloads and decompiles Minecraft (10-20 min)
+./gradlew build                  # compile and produce the jar
+./gradlew :core:test             # engine unit tests
+./gradlew :forge-1.12:runClient  # launch Minecraft with the mod
 ```
 
-Le jar se trouve dans `forge-1.12/build/libs/`.
+The jar lands in `forge-1.12/build/libs/`.
 
 ### IntelliJ IDEA
 
-1. **File → Open** et sélectionne le dossier du projet. IntelliJ détecte Gradle seul.
-2. Dans la fenêtre d'import, choisis le **JDK 8** comme Gradle JVM.
-3. Une fois l'import terminé, exécute :
+1. **File → Open** and select the project folder. IntelliJ detects Gradle on its own.
+2. In the import dialog, pick the **JDK 8** as the Gradle JVM.
+3. Once the import finishes, run:
    ```bash
    ./gradlew genIntellijRuns
    ```
-   > Cette tâche **doit** être lancée après l'import : elle écrit dans `.idea/workspace.xml`,
-   > qui n'existe pas avant. Si elle affiche
-   > *« Intellij workspace file could not be found »*, c'est que le projet n'a pas encore
-   > été importé.
-4. Redémarre IntelliJ. Les configurations **Minecraft Client** et **Minecraft Server**
-   apparaissent dans le menu déroulant, prêtes à être lancées ou déboguées.
+   > This task **must** run after the import: it writes into `.idea/workspace.xml`, which
+   > does not exist before. If it reports
+   > *"Intellij workspace file could not be found"*, the project has not been imported yet.
+4. Restart IntelliJ. The **Minecraft Client** and **Minecraft Server** configurations appear
+   in the run dropdown, ready to launch or debug.
 
 ### Eclipse
 
@@ -194,78 +192,70 @@ Le jar se trouve dans `forge-1.12/build/libs/`.
 ./gradlew eclipse
 ```
 
-Puis **File → Import → Existing Projects into Workspace** et sélectionne le dossier.
+Then **File → Import → Existing Projects into Workspace** and select the folder.
 
-Les configurations de lancement sont générées automatiquement dans `forge-1.12/` :
+The launch configurations are generated automatically in `forge-1.12/`:
 
 - `forge-1.12_Client.launch`
 - `forge-1.12_Server.launch`
 
-Clic droit dessus → **Run As** ou **Debug As**. Les points d'arrêt fonctionnent
-directement.
+Right-click either one → **Run As** or **Debug As**. Breakpoints work straight away.
 
 ### Visual Studio Code
 
-Installe le *Extension Pack for Java*, puis ouvre le dossier. `.vscode/settings.json`
-pointe déjà VS Code vers le JDK 8.
+Install the *Extension Pack for Java*, then open the folder. `.vscode/settings.json` already
+points VS Code at the JDK 8.
 
-Les tâches sont prêtes (**Ctrl+Shift+P → Run Task**) :
+The tasks are ready (**Ctrl+Shift+P → Run Task**):
 
-| Tâche | Effet |
+| Task | Effect |
 |---|---|
 | Build | `gradlew build` |
-| Tests (core) | `gradlew :core:test` |
-| Lancer Minecraft | Démarre le jeu |
-| Lancer Minecraft (attente du débogueur) | Démarre le jeu en attendant un débogueur sur le port 5005 |
+| Test (core) | `gradlew :core:test` |
+| Run Minecraft | Starts the game |
+| Run Minecraft (wait for debugger) | Starts the game waiting for a debugger on port 5005 |
 
-**Pour déboguer** : lance la configuration **« Attacher à Minecraft »** (F5). Elle démarre
-le jeu en mode attente puis s'y connecte.
+**To debug**: launch the **"Attach to Minecraft"** configuration (F5). It starts the game in
+waiting mode and then connects to it.
 
-> ForgeGradle exécute Minecraft dans une JVM séparée, avec un classpath et des arguments
-> qu'il construit lui-même. Aucun IDE ne peut la lancer directement — d'où le passage par
-> l'attachement à distance. La même approche fonctionne dans les trois IDE :
-> `./gradlew :forge-1.12:runClient --debug-jvm` ouvre le port 5005.
+> ForgeGradle runs Minecraft in a separate JVM, with a classpath and arguments it builds
+> itself. No IDE can launch it directly — hence the remote attach. The same approach works in
+> all three IDEs: `./gradlew :forge-1.12:runClient --debug-jvm` opens port 5005.
 
-### Contrôle qualité
-
-```bash
-./gradlew :core:check   # tests + verification architecturale
-```
-
-`checkNoMinecraftImports` fait **échouer le build** si une classe de `core` importe
-`net.minecraft.*` ou `net.minecraftforge.*`, en pointant le fichier et la ligne. La règle
-d'architecture est ainsi garantie par l'outillage, pas par la vigilance.
-
-La CI GitHub Actions exécute les tests du moteur **avant** de préparer l'espace de travail
-Forge : si la logique est cassée, on le sait en quelques secondes plutôt qu'après vingt
-minutes de décompilation.
-
-### Structure du projet
-
-```
-core/          Logique métier — Java pur, AUCUNE dépendance Minecraft, couvert par 82 tests
-forge-1.12/    Couche d'adaptation Forge 1.12.2 — traduit les événements du jeu, rien de plus
-```
-
-Cette séparation n'est pas décorative : **`core` n'importe jamais une classe
-`net.minecraft.*`**. C'est ce qui rendra le portage vers les versions récentes de Minecraft
-peu coûteux — seule la couche `forge-*` sera à réécrire.
-
-Deux règles en découlent :
-
-- Le temps est **injecté** dans le moteur via une interface `Clock`, jamais lu directement.
-  Un test peut ainsi simuler cinq minutes d'inactivité instantanément.
-- Le moteur compte en **millisecondes**, pas en ticks — les ticks se dilatent avec le lag
-  du serveur et fausseraient la mesure.
+### Quality checks
 
 ```bash
-./gradlew :core:test    # 82 tests, sans lancer Minecraft
-./gradlew :core:check   # les tests, plus la verification qu'aucun import Minecraft n'a glisse dans core
+./gradlew :core:check   # tests plus the architecture check
 ```
+
+`checkNoMinecraftImports` **fails the build** if any class in `core` imports
+`net.minecraft.*` or `net.minecraftforge.*`, pointing at the file and line. The architectural
+rule is enforced by tooling, not by vigilance.
+
+The GitHub Actions CI runs the engine tests **before** setting up the Forge workspace: if the
+logic is broken you know within seconds instead of after twenty minutes of decompiling.
+
+### Project structure
+
+```
+core/          Business logic — pure Java, NO Minecraft dependency, covered by 82 tests
+forge-1.12/    Forge 1.12.2 adapter layer — translates game events, nothing more
+```
+
+This separation is not decorative: **`core` never imports a `net.minecraft.*` class**. That is
+what will make porting to recent Minecraft versions cheap — only the `forge-*` layer will
+need rewriting.
+
+Two rules follow from it:
+
+- Time is **injected** into the engine through a `Clock` interface, never read directly. A
+  test can therefore simulate five minutes of inactivity instantly.
+- The engine counts in **milliseconds**, not ticks — ticks stretch with server lag and would
+  distort the measurement.
 
 ---
 
 ## Licence
 
-[MIT](LICENSE). Tu peux l'utiliser, le modifier, l'inclure dans un modpack et le
-redistribuer, y compris commercialement, à condition de conserver la mention de copyright.
+[MIT](LICENSE). You may use, modify, bundle it in a modpack and redistribute it, including
+commercially, as long as you keep the copyright notice.

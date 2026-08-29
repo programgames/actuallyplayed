@@ -1,202 +1,199 @@
-# Playtime Tracker — Mod Minecraft Forge
+# Playtime Tracker — Minecraft Forge mod
 
-## Objet du projet
+## What this project is
 
-Mod Minecraft **client-side** qui mesure le temps passé sur chaque serveur multijoueur et
-chaque monde solo, en **distinguant le temps réellement joué du temps AFK**.
-Les données sont consultables via un écran greffé sur la GUI Statistiques du jeu.
+A **client-side** Minecraft mod that measures time spent on each multiplayer server and in
+each singleplayer world, **telling time actually played apart from time spent AFK**.
+The figures are shown on a screen grafted onto the vanilla Statistics GUI.
 
 ---
 
-## 1. Environnement technique
+## 1. Technical environment
 
-| Élément | Valeur | Note |
+| Item | Value | Note |
 |---|---|---|
-| Minecraft | **1.12.2** | Version de référence de la branche 1.12 |
-| Forge (compilation) | **14.23.5.2847** | Voir l'encadré ci-dessous — ce n'est pas le recommended build |
-| Forge (exécution) | 2847 et au-delà, dont le recommended **2860** | |
-| Mappings MCP | **snapshot_20171003** | `stable_39` est déclaré pour 1.12 et déclenche un avertissement en 1.12.2 |
-| ForgeGradle | **2.3.10** (version publiée, pinnée) | Préférée à `2.3-SNAPSHOT` pour un build reproductible |
-| Gradle | **4.10.3** (wrapper) | ForgeGradle 2.3 ne fonctionne pas au-delà |
-| JDK de build | **JDK 8 obligatoire** | `C:\Program Files\Eclipse Adoptium\jdk-8.0.472.8-hotspot` (déjà en `JAVA_HOME`) |
+| Minecraft | **1.12.2** | |
+| Forge (compile) | **14.23.5.2847** | See the box below — this is *not* the recommended build |
+| Forge (runtime) | 2847 and later, including the recommended **2860** | |
+| MCP mappings | **snapshot_20171003** | `stable_39` is declared for 1.12 and warns on 1.12.2 |
+| ForgeGradle | **2.3.10** (published, pinned) | Preferred over `2.3-SNAPSHOT` for a reproducible build |
+| Gradle | **4.10.3** (wrapper) | ForgeGradle 2.3 does not work beyond this |
+| Build JDK | **JDK 8, mandatory** | `C:\Program Files\Eclipse Adoptium\jdk-8.0.472.8-hotspot` (already in `JAVA_HOME`) |
 | `sourceCompatibility` | 1.8 | |
 
-> ⚠️ **Pourquoi 2847 et pas le recommended build 2860 ?**
-> L'artefact `forge-<version>-userdev.jar`, indispensable à ForgeGradle 2.3 pour compiler,
-> **n'est pas publié** sur `maven.minecraftforge.net` pour les builds 2848 à 2860.
-> Vérifié en août 2026 : 2838 et 2847 renvoient HTTP 200, 2848 à 2860 renvoient tous 404.
-> **2847 est donc le build le plus récent compilable.** Ce n'est pas une limitation
-> fonctionnelle : l'API Forge 1.12.2 est stable sur cette plage, et le mod compilé contre
-> 2847 tourne sans modification sur 2860.
-> Ne pas « corriger » `forgeVersion` vers 2860 : le build échouerait sur
+> ⚠️ **Why 2847 and not the recommended build 2860?**
+> The `forge-<version>-userdev.jar` artifact, which ForgeGradle 2.3 needs in order to
+> compile, is **not published** on `maven.minecraftforge.net` for builds 2848 through 2860.
+> Checked in August 2026: 2838 and 2847 return HTTP 200, every build from 2848 to 2860
+> returns 404. **2847 is therefore the newest compilable build.** This is not a functional
+> limitation: the Forge 1.12.2 API is stable across that range, and a mod compiled against
+> 2847 runs unchanged on 2860.
+> Do not "fix" `forgeVersion` to 2860 — the build would fail on
 > `Could not find forge-userdev.jar`.
 
-> ⚠️ **Ne jamais compiler avec le JDK 17/25 présent sur la machine.** ForgeGradle 2.3
-> et Gradle 4.x plantent sur tout JDK > 8. Si le build échoue avec des erreurs de type
-> `Unsupported class file major version` ou `NoClassDefFoundError` dans Gradle,
-> le premier réflexe est de vérifier `JAVA_HOME`.
+> ⚠️ **Never compile with the JDK 17/25 installed on this machine.** ForgeGradle 2.3 and
+> Gradle 4.x break on any JDK newer than 8. If the build fails with
+> `Unsupported class file major version` or a `NoClassDefFoundError` inside Gradle, check
+> `JAVA_HOME` first.
 
-### Identité du mod
+### Mod identity
 
-- **modid** : `playtimetracker`
-- **Mod name** : `Playtime Tracker`
-- **Package racine** : `fr.julien.playtimetracker`
-- **Version** : SemVer, jar nommé `playtimetracker-1.12.2-0.1.0.jar`
+- **modid**: `playtimetracker`
+- **Mod name**: `Playtime Tracker`
+- **Root package**: `fr.julien.playtimetracker`
+- **Version**: SemVer; jar named `playtimetracker-1.12.2-0.1.0.jar`
 
 ---
 
-## 2. Décisions fonctionnelles (validées avec l'utilisateur)
+## 2. Functional decisions (agreed with the user)
 
-### 2.1 Côté d'exécution
+### 2.1 Which side runs
 
-**Client uniquement.** Le mod n'a pas besoin d'être installé sur le serveur et
-fonctionne sur n'importe quel serveur vanilla ou moddé.
-→ Conséquence : `clientSideOnly = true` dans `@Mod`, aucune classe serveur, aucun packet réseau.
+**Client only.** The mod does not need to be installed on the server and works on any
+vanilla or modded server.
+→ Consequence: `clientSideOnly = true` in `@Mod`, no server class, no network packet.
 
-### 2.2 Détection d'activité
+### 2.2 Activity detection
 
-Le compteur est considéré **actif** si au moins un de ces signaux survient :
+The counter is **active** when at least one of these signals occurs:
 
-1. **Intention de déplacement** — lecture de `MovementInput` (avancer / reculer / strafe /
-   saut / sneak), et **non** de la position résultante.
-2. **Rotation caméra** (variation de `yaw` / `pitch`)
-3. **Entrées clavier/souris** (touche pressée, clic, molette)
-4. **Interactions de gameplay** (casser/poser un bloc, ouvrir un inventaire, envoyer un
-   message dans le chat, crafter)
+1. **Movement intent** — reading `MovementInput` (forward / back / strafe / jump / sneak),
+   and **not** the resulting position.
+2. **Camera rotation** (change in `yaw` / `pitch`)
+3. **Keyboard and mouse input** (any key, click or wheel)
+4. **Gameplay interactions** (breaking or placing a block, opening an inventory, sending a
+   chat message, crafting)
 
-> **Pourquoi l'intention et pas la position ?** La position d'un joueur varie en permanence
-> sans action de sa part : gravité, courant d'eau, minecart, bateau, monture, knockback,
-> repositionnement serveur (rubber-banding), imprécision flottante. Or les fermes AFK
-> classiques reposent précisément sur ce déplacement passif. Mesurer la position
-> classerait « actif » exactement les situations que le mod doit détecter comme AFK.
-> `MovementInput` est nul quand le joueur est porté : signal binaire, aucun seuil arbitraire
-> à calibrer, et trivial à porter vers les versions récentes de Minecraft.
+> **Why intent rather than position?** A player's position changes constantly with no input
+> from them: gravity, water currents, minecarts, boats, mounts, knockback, server
+> repositioning (rubber-banding), floating-point drift. Classic AFK farms are built on
+> exactly that passive movement. Measuring position would classify as "active" precisely the
+> situations the mod exists to catch as AFK. `MovementInput` is zero whenever the player is
+> being carried: a binary signal, no arbitrary threshold to calibrate, and trivial to port to
+> recent Minecraft versions.
 
-**États spéciaux** (écran de mort en attente de respawn, écrans de chargement, transitions
-de dimension) : **aucune règle particulière**, ils sont traités comme n'importe quelle
-inactivité et soumis au seuil normal. Moins de cas particuliers = moins de bugs.
+**Special states** (death screen awaiting respawn, loading screens, dimension transitions):
+**no special rule.** They are treated as ordinary inactivity and subject to the normal
+threshold. Fewer special cases means fewer bugs.
 
-### 2.3 Règle AFK
+### 2.3 The AFK rule
 
-- Seuil : **5 minutes** par défaut, **configurable**.
-- Quand le seuil est atteint : le compteur actif s'arrête **et les 5 minutes déjà
-  comptabilisées sont retirées de l'actif et transférées dans le compteur AFK**
-  (retrait rétroactif — c'est le point central du mod).
-- Toute activité relance immédiatement le compteur actif.
-- **Fenêtre du jeu non focus (alt-tab) → AFK immédiat**, sans attendre le seuil, avec
-  retrait rétroactif du temps d'inactivité déjà écoulé. Idem pour le menu pause en solo.
+- Threshold: **5 minutes** by default, **configurable**.
+- When the threshold is reached, the active counter stops **and the 5 minutes already
+  counted are removed from it and moved into the AFK counter** (retroactive rollback —
+  this is the heart of the mod).
+- Any activity restarts the active counter immediately.
+- **Game window not focused (alt-tab) → AFK at once**, without waiting for the threshold,
+  with retroactive rollback of the idle time already elapsed. Same for the singleplayer
+  pause menu.
 
-### 2.4 Granularité et clés de données
+### 2.4 Granularity and data keys
 
-- **Par serveur multijoueur**, clé = `hôte:port` (une entrée par réseau ; pas de tentative
-  de distinguer les sous-serveurs BungeeCord). Le nom que le joueur a donné au serveur dans
-  sa liste est stocké comme libellé d'affichage.
-- **Par monde solo**, clé = nom du dossier de sauvegarde (et non le nom affiché, qui peut
-  être renommé sans que l'historique doive se scinder en deux).
-- **Realms n'est volontairement pas tracké.** `getCurrentServerData()` renvoie `null` pour
-  une connexion Realms : aucune clé stable n'est disponible côté client. Décision validée
-  avec l'utilisateur — comportement attendu, pas un bug à corriger.
-- **Par compte Minecraft**, clé = **UUID** du joueur (résiste aux changements de pseudo).
+- **Per multiplayer server**, key = `host:port` (one entry per network; no attempt to tell
+  BungeeCord sub-servers apart). The name the player gave the server in their server list is
+  stored as the display label.
+- **Per singleplayer world**, key = save folder name (not the display name, which can be
+  renamed without the history having to split in two).
+- **Realms is deliberately not tracked.** `getCurrentServerData()` returns `null` for a
+  Realms connection: no stable key is available client-side. Agreed with the user — expected
+  behaviour, not a bug to fix.
+- **Per Minecraft account**, key = the player's **UUID** (survives name changes).
 
-### 2.5 Résistance au crash — session provisoire
+### 2.5 Crash resistance — the provisional session
 
-Deux règles actées se contredisaient : « une session n'est validée qu'à sa clôture » et
-« perte maximale sur crash : 60 s ». Avec un commit uniquement à la clôture, un crash après
-trois heures perdait les trois heures.
+Two agreed rules contradicted each other: "a session is only committed when it closes" and
+"a crash costs at most 60 seconds". With a commit only at close, a crash three hours in lost
+all three hours.
 
-**Résolution** : chaque autosave écrit aussi la session en cours comme entrée
-**provisoire** (`ProvisionalSession`, champ `inProgress` du JSON). Elle est effacée à toute
-clôture propre, et n'est relue au démarrage suivant **que si le jeu n'est pas sorti
-proprement**. Le retrait rétroactif ayant déjà été appliqué par le moteur au moment de
-l'instantané, une session récupérée est comptabilisée exactement comme une session close.
-La règle des 30 s s'applique aussi à la récupération.
+**Resolution**: every autosave also writes the running session as a **provisional** entry
+(`ProvisionalSession`, the `inProgress` field of the JSON). It is cleared on any clean
+close, and is only read back at the next startup **if the game did not exit cleanly**. The
+rollback has already been applied by the engine at snapshot time, so a recovered session is
+accounted for exactly as a closed one would be. The 30-second rule applies to recovery too.
 
-### 2.6 Cycle de vie des sessions
+### 2.6 Session lifecycle
 
-**Sessions courtes ignorées.** Une session de **moins de 30 secondes est intégralement
-jetée** : elle n'entre ni dans l'historique, ni dans les totaux de la cible. Un serveur sur
-lequel on n'a fait que des allers-retours de quelques secondes n'apparaît donc pas du tout
-dans la liste — c'est ce qui garde l'écran lisible.
-→ Conséquence d'implémentation : une session n'est **validée qu'à sa clôture**, jamais
-incrémentalement, sinon on ne pourrait pas l'annuler rétroactivement.
+**Short sessions are dropped.** A session **shorter than 30 seconds is discarded entirely**:
+it enters neither the history nor the target's totals. A server the player only bounced in
+and out of therefore does not appear at all — that is what keeps the screen readable.
+→ Implementation consequence: a session is **only committed when it closes**, never
+incrementally, otherwise it could not be cancelled after the fact.
 
-**Rétention.** Les sessions détaillées sont conservées **90 jours**. Au-delà, elles sont
-**compactées en agrégats mensuels** par cible (temps actif, temps AFK, nombre de sessions).
-Aucun temps n'est jamais perdu dans les totaux : seul le détail session par session
-disparaît. Le fichier de données reste ainsi de taille bornée dans le temps.
-Le compactage tourne au démarrage du jeu.
+**Retention.** Detailed sessions are kept for **90 days**. Beyond that they are **compacted
+into monthly aggregates** per target (active time, AFK time, session count). No time is ever
+lost from the totals; only the session-by-session detail disappears. The data file therefore
+stays bounded over time. Compaction runs at game start.
 
-### 2.7 Persistance
+### 2.7 Persistence
 
-- Format : **JSON unique**, lisible et éditable à la main, en pretty-print.
-- Emplacement : `.minecraft/config/playtimetracker/`
-- **Autosave périodique** (60 s par défaut, configurable) + à la déconnexion + à la fermeture.
-- **Écriture atomique** : fichier `.tmp` dans le même dossier, `FileChannel.force()` pour
-  vider le cache de l'OS, puis `ATOMIC_MOVE`. Le fichier cible est toujours soit l'ancienne
-  version complète, soit la nouvelle — jamais un mélange tronqué.
-- Perte maximale sur crash : l'intervalle d'autosave.
+- Format: **a single JSON file**, readable and hand-editable, pretty-printed.
+- Location: `.minecraft/config/playtimetracker/`
+- **Periodic autosave** (60 s by default, configurable) + on disconnect + on exit.
+- **Atomic write**: a `.tmp` file in the same directory, `FileChannel.force()` to flush the
+  OS cache, then `ATOMIC_MOVE`. The target file is always either the complete old version or
+  the complete new one — never a truncated mix.
+- Maximum loss on a crash: the autosave interval.
 
-**Sérialisation écrite à la main**, sans réflexion Gson. Trois raisons : le JSON reste un
-contrat stable et documenté que le joueur peut relire ; renommer un champ Java ne casse pas
-silencieusement les fichiers existants ; rien ne dépend de la réflexion survivant à
-l'obfuscation du jar publié.
+**Serialisation is written by hand**, without Gson reflection. Three reasons: the JSON stays
+a stable, documented contract the player can read; renaming a Java field cannot silently
+break existing files; and nothing depends on reflection surviving obfuscation of a released
+jar.
 
-**Tolérance aux fichiers abîmés.** Une entrée illisible (session incohérente, clé de cible
-non parsable, mois malformé) est ignorée, pas fatale : un dégât partiel doit coûter les
-entrées abîmées, pas tout l'historique. Un fichier globalement illisible est **déplacé en
-quarantaine** (`.corrupt-<horodatage>`) et le mod repart à vide — jamais supprimé.
+**Tolerance for damaged files.** An unreadable entry (an inconsistent session, an unparsable
+target key, a malformed month) is skipped rather than fatal: partial damage should cost the
+damaged entries, not the whole history. A wholly unreadable file is **quarantined**
+(`.corrupt-<timestamp>`) and the mod starts fresh — it is never deleted.
 
-**Fichier écrit par une version plus récente du mod** (`schemaVersion` supérieur) :
-lecture refusée via `UnsupportedSchemaException`, fichier laissé intact. L'écraser
-détruirait des champs inconnus de cette version.
+**A file written by a newer version of the mod** (higher `schemaVersion`): reading is refused
+with `UnsupportedSchemaException` and the file is left intact. Overwriting it would destroy
+fields this version knows nothing about.
 
-**Totaux dérivés, jamais stockés.** Chaque total est recalculé depuis les sessions et les
-agrégats. Un compteur stocké pourrait diverger de ce qu'il résume ; dériver rend
-l'invariant « le compactage ne change jamais les totaux » vrai par construction plutôt que
-par discipline.
+**Totals are derived, never stored.** Every total is recomputed from the sessions and the
+aggregates. A stored counter could drift away from what it summarises; deriving makes the
+invariant "compaction never changes the totals" true by construction rather than by
+discipline.
 
-### 2.8 Interface — le contexte présent, pas un catalogue
+### 2.8 Interface — the present context, not a catalogue
 
-**Écran unique greffé sur la GUI Statistiques vanilla**, qui affiche **uniquement la
-destination où le joueur se trouve** : ce serveur, ou ce monde. Pas de liste, pas de
-navigation, pas de clic.
+**A single screen grafted onto the vanilla Statistics GUI**, showing **only the destination
+the player is currently in**: this server, or this world. No list, no navigation, no click.
 
-> **Décision révisée le 2026-08-29.** La première version listait toutes les destinations
-> avec un écran de détail par clic. À l'usage c'était un catalogue, et un catalogue répond
-> à une question qu'on ne se pose pas en jouant. Ce qu'on veut savoir manette en main, c'est
-> « depuis combien de temps je joue *ici* ».
+> **Decision revised 2026-08-29.** The first version listed every destination with a detail
+> screen behind a click. In use it was a catalogue, and a catalogue answers a question nobody
+> asks mid-game. What a player wants to know, controller in hand, is "how long have I been
+> playing *here*".
 
-**Le stockage reste inchangé** : chaque serveur et chaque monde continuent d'être
-enregistrés séparément, et l'historique d'une destination attend le joueur quand il y
-revient. Seul l'affichage se restreint au contexte courant.
+**Storage is unchanged**: each server and each world is still recorded separately, and a
+destination's history waits for the player when they return. Only the display narrows to the
+current context.
 
-Contenu, en trois blocs séparés par des filets :
-- **Session en cours** — état actif/AFK en couleur, temps joué, temps AFK, en direct
-- **Total ici** — cumul joué / AFK / pourcentage réellement joué sur cette destination
-- **Détails** — première fois, nombre de sessions, durée moyenne, session la plus longue
+Three blocks separated by thin rules:
+- **Current session** — active/AFK state in colour, played time, AFK time, live
+- **Total here** — played / AFK / percentage actually played on this destination
+- **Details** — first seen, session count, average duration, longest session
 
-**Les totaux incluent la session en cours.** Un joueur pense « mon temps sur ce serveur »
-comme incluant l'instant présent ; n'afficher que les sessions closes ferait paraître
-l'écran périmé à la seconde où il l'ouvre.
+**Totals include the running session.** A player thinks of "my time on this server" as
+including right now; showing only closed sessions would make the screen look stale the
+second they opened it.
 
-**L'historique daté des sessions n'est pas affiché** (décision du 2026-08-29). Les données
-sont toujours enregistrées : on pourra le réafficher sans rien changer au stockage.
+**The dated session history is not displayed** (decision of 2026-08-29). The data is still
+recorded: it can be shown again without changing anything in storage.
 
-**Aucun feedback en jeu** lors des bascules actif ↔ AFK : le mod est totalement silencieux
-(pas de HUD, pas de message de chat). Un log de diagnostic existe, désactivé par défaut.
+**No in-game feedback** on active ↔ AFK transitions: the mod is entirely silent (no HUD, no
+chat message). A diagnostic log exists, disabled by default.
 
 ---
 
 ## 3. Architecture
 
-Objectif : **rendre le portage vers d'autres versions de Minecraft peu coûteux.**
+Goal: **make porting to other Minecraft versions cheap.**
 
 ```
 1.12/
-├─ core/                        Module Gradle — JAVA PUR, ZÉRO import Minecraft
+├─ core/                        Gradle module — PURE JAVA, ZERO Minecraft import
 │  ├─ src/main/java/fr/julien/playtimetracker/core/
-│  │  ├─ PlaytimeTracker.java   Façade : cycle de vie, autosave, récupération
-│  │  ├─ model/                 TargetType, TargetKey, TrackedSession,
+│  │  ├─ PlaytimeTracker.java   Facade: lifecycle, autosave, crash recovery
+│  │  ├─ model/                 TargetType, TargetKey, ServerAddress, TrackedSession,
 │  │  │                         TrackedTarget, PlayerPlaytime, PlaytimeData,
 │  │  │                         MonthlyAggregate, ProvisionalSession
 │  │  ├─ engine/                Clock, SystemClock, ActivityState,
@@ -204,13 +201,13 @@ Objectif : **rendre le portage vers d'autres versions de Minecraft peu coûteux.
 │  │  ├─ storage/               PlaytimeRepository, JsonPlaytimeStore, PlaytimeCodec,
 │  │  │                         AtomicFileWriter, UnsupportedSchemaException
 │  │  ├─ util/                  DurationFormatter, DateFormatter
-│  │  └─ config/                PlaytimeConfig (POJO)
-│  └─ src/test/java/            Tests JUnit du moteur (horloge injectée)
+│  │  └─ config/                PlaytimeConfig (immutable, builder)
+│  └─ src/test/java/            JUnit tests (injected clock)
 │
-└─ forge-1.12/                  Module Gradle — couche d'adaptation Forge 1.12.2
+└─ forge-1.12/                  Gradle module — Forge 1.12.2 adapter layer
    └─ src/main/java/fr/julien/playtimetracker/forge/
-      ├─ PlaytimeTrackerMod.java     @Mod, cycle de vie
-      ├─ Reference.java              modid, nom, version (substituée au build)
+      ├─ PlaytimeTrackerMod.java     @Mod, wiring
+      ├─ Reference.java              modid, name, version (substituted at build time)
       ├─ bridge/                     TargetResolver, TargetIdentity
       ├─ event/                      PlaytimeClientHandler, StatsGuiHandler
       ├─ client/gui/                 GuiPlaytimeStats
@@ -218,238 +215,228 @@ Objectif : **rendre le portage vers d'autres versions de Minecraft peu coûteux.
                                      ConfigChangeHandler
 ```
 
-### Règles d'architecture non négociables
+### Non-negotiable architecture rules
 
-1. **`core` n'importe JAMAIS une classe `net.minecraft.*` ou `net.minecraftforge.*`.**
-   C'est la garantie du portage multi-version. Un import Minecraft dans `core` est un bug.
-2. Le temps est **injecté** dans le moteur (interface `Clock`), jamais lu depuis
-   `System.currentTimeMillis()` à l'intérieur de la logique métier → tests déterministes
-   (on simule 5 minutes d'AFK instantanément).
-3. Le moteur raisonne en **millisecondes**, pas en ticks : les ticks varient avec le lag
-   serveur et fausseraient les mesures.
-4. La couche Forge ne fait que **traduire** : capter des événements Minecraft et appeler
-   `engine.onActivity(...)` / `engine.tick(now)`. Aucune règle métier dans `forge-1.12`.
-
----
-
-## 4. Feuille de route
-
-Construction **MVP puis itérations**, avec validation en jeu à chaque étape.
-
-- [x] **Étape 1 — Squelette** : structure Gradle multi-module, `build.gradle` ForgeGradle 2.3,
-      `mcmod.info`, classe `@Mod` minimale.
-      *Fait : `gradlew build` produit `playtimetracker-1.12.2-0.1.0.jar`, classes `core`
-      embarquées, version substituée, tests JUnit verts.*
-- [x] **Étape 2 — Moteur** : `PlaytimeEngine` avec le retrait rétroactif, la bascule AFK
-      immédiate sur perte de focus et l'abandon des sessions courtes.
-      *Fait : 23 tests JUnit verts, zéro import Minecraft dans `core`. Validé par test de
-      mutation — neutraliser le retrait rétroactif fait tomber 8 tests.*
-- [x] **Étape 3 — Persistance** : modèle de données par UUID × cible, codec JSON explicite,
-      écriture atomique, quarantaine des fichiers corrompus, compactage mensuel.
-      *Fait : 54 tests JUnit verts au total. Validé par test de mutation — un compactage qui
-      perd des données fait tomber 5 tests.*
-- [x] **Étape 4 — Intégration Forge** : capture des signaux d'activité, détection du focus
-      fenêtre, résolution de la cible, branchement du cycle de vie, config Forge.
-      *Fait : 66 tests JUnit verts, mod actif en jeu, config générée.*
-      *Reste à valider manuellement en jeu : voir §8.*
-- [x] **Étape 5 — GUI** : bouton greffé sur l'écran Statistiques vanilla, écran principal
-      avec session en direct, totaux globaux et liste scrollable triée.
-      *Fait : 73 tests JUnit verts, écran compilé et chargé en jeu.*
-- [x] **Étape 6 — Détail & finitions** : écran de détail par serveur (clic sur une ligne),
-      historique unifié sessions + mois compactés, config éditable in-game, i18n FR/EN.
-      *Fait : 79 tests JUnit verts, chargé en jeu sans erreur.*
+1. **`core` NEVER imports a `net.minecraft.*` or `net.minecraftforge.*` class.** This is what
+   guarantees multi-version portability. A Minecraft import in `core` is a bug — and the
+   build now fails on it (see §11).
+2. Time is **injected** into the engine (the `Clock` interface), never read from
+   `System.currentTimeMillis()` inside the business logic → deterministic tests (five
+   minutes of AFK can be simulated instantly).
+3. The engine works in **milliseconds**, not ticks: ticks stretch with server lag and would
+   distort the measurement.
+4. The Forge layer only **translates**: it catches Minecraft events and calls the tracker.
+   No business rule lives in `forge-1.12`.
 
 ---
 
-## 5. Commandes
+## 4. Roadmap
+
+Built **MVP first, then iterations**, with in-game validation at each step.
+
+- [x] **Step 1 — Skeleton**: multi-module Gradle layout, ForgeGradle 2.3 `build.gradle`,
+      `mcmod.info`, minimal `@Mod` class.
+      *Done: `gradlew build` produces the jar with `core` classes bundled and the version
+      substituted.*
+- [x] **Step 2 — Engine**: `PlaytimeEngine` with the retroactive rollback, immediate AFK on
+      focus loss, and short-session dropping.
+      *Done: 23 tests green, zero Minecraft import in `core`. Validated by mutation testing —
+      disabling the rollback breaks 8 tests.*
+- [x] **Step 3 — Persistence**: data model per UUID × target, explicit JSON codec, atomic
+      writes, quarantine of corrupted files, monthly compaction.
+      *Done: 54 tests green. Validated by mutation testing — a compaction that loses data
+      breaks 5 tests.*
+- [x] **Step 4 — Forge integration**: activity signal capture, window focus detection, target
+      resolution, lifecycle wiring, Forge config.
+      *Done: 66 tests green, mod active in game.*
+- [x] **Step 5 — GUI**: button grafted onto the vanilla Statistics screen, main screen with
+      live session and totals.
+- [x] **Step 6 — Detail & polish**: in-game editable config, FR/EN i18n.
+      *Note: the per-server detail screen built at this step was later removed — see §2.8.*
+- [x] **Step 7 — Hardening pass** (2026-08-29): immutable config, synchronised handler,
+      cached target resolution, dead code removed, `ServerAddress` moved into `core` with
+      tests, architecture guard task, MIT licence, GitHub Actions CI.
+      *Done: 82 tests green.*
+
+---
+
+## 5. Commands
 
 ```bash
-# Toujours depuis la racine du projet, avec JAVA_HOME sur le JDK 8
-./gradlew setupDecompWorkspace   # première fois uniquement (long)
-./gradlew build                  # compile + produit le jar
-./gradlew runClient              # lance Minecraft avec le mod
-./gradlew :core:test             # tests unitaires du moteur
+# Always from the project root, with JAVA_HOME pointing at the JDK 8
+./gradlew setupDecompWorkspace   # first time only (long)
+./gradlew build                  # compile and produce the jar
+./gradlew :forge-1.12:runClient  # launch Minecraft with the mod
+./gradlew :core:test             # engine unit tests
+./gradlew :core:check            # the tests, plus the no-Minecraft-import guard
 ```
 
 ---
 
 ## 6. Conventions
 
-- **Langue** : échanges avec l'utilisateur en **français**. Code, identifiants et commentaires
-  techniques en **anglais** (convention Minecraft/Forge).
-- **i18n** : aucun texte affiché en dur dans le code, tout passe par les fichiers `.lang`
-  (`fr_fr.lang`, `en_us.lang`).
-- Ne jamais utiliser de noms obfusqués (`func_xxxxx_x`) : toujours les noms MCP mappés.
-- Ce fichier est mis à jour **au fil des décisions** : toute nouvelle décision technique ou
-  fonctionnelle validée avec l'utilisateur doit y être consignée.
+- **Language**: conversation with the user in **French**. Everything written into the
+  repository in **English**. See §12.
+- **i18n**: no displayed text hard-coded in Java; everything goes through the `.lang` files.
+- Never use obfuscated names (`func_xxxxx_x`): always the mapped MCP names.
+- This file is updated **as decisions are made**: every new technical or functional decision
+  agreed with the user belongs here.
 
 ---
 
-## 7. Pièges rencontrés (ne pas les redécouvrir)
+## 7. Traps already hit (do not rediscover them)
 
-- **`Could not find forge-userdev.jar`** → `forgeVersion` pointe sur un build sans artefact
-  userdev publié. Voir l'encadré de la section 1 : rester sur 14.23.5.2847.
-- **`Could not find net.minecraftforge:forge:1.12.2-null`** → à l'intérieur du bloc
-  `minecraft { }`, le delegate Groovy est l'extension ForgeGradle, qui possède ses propres
-  propriétés `mcVersion` et `forgeVersion`. Une référence non qualifiée y résout sur
-  l'extension (vide), pas sur `gradle.properties`. Toujours qualifier avec `project.`,
-  ou résoudre la valeur à l'extérieur du bloc (c'est ce que fait `forge-1.12/build.gradle`).
-- **Avertissement `This mapping 'stable_39' was designed for MC 1.12`** → utiliser
-  `snapshot_20171003`, le mapping de référence pour 1.12.2.
+- **`Could not find forge-userdev.jar`** → `forgeVersion` points at a build with no published
+  userdev artifact. See the box in §1: stay on 14.23.5.2847.
+- **`Could not find net.minecraftforge:forge:1.12.2-null`** → inside the `minecraft { }`
+  block the Groovy delegate is the ForgeGradle extension, which has its own `mcVersion` and
+  `forgeVersion` properties. An unqualified reference resolves against the (empty) extension,
+  not `gradle.properties`. Always qualify with `project.`, or resolve the value outside the
+  block — which is what `forge-1.12/build.gradle` does.
+- **Warning `This mapping 'stable_39' was designed for MC 1.12`** → use `snapshot_20171003`,
+  the reference mapping for 1.12.2.
+- **List rows not clickable.** `GuiSlot.handleMouseInput()` only handles the wheel and
+  scrolling: it does **not** propagate clicks. A `GuiScreen` hosting a `GuiListExtended` must
+  forward `mouseClicked` **and** `mouseReleased` explicitly, on top of `handleMouseInput`.
+  Without it the list renders and scrolls perfectly but is inert — a silent failure with no
+  error anywhere.
+- **`Format error: %` in a column header.** Minecraft runs every translation through
+  `String.format`, so a lone `%` in a `.lang` file is not a valid specifier. Avoid the
+  character in translation values.
+- **Mojibake in game.** Gradle was compiling with the platform default encoding
+  (windows-1252). Fixed with `options.encoding = 'UTF-8'` on every `JavaCompile` task in the
+  root `build.gradle`. Minecraft's default font covers little beyond Latin-1 anyway, so
+  decorative glyphs are best avoided in Java string literals.
 
+### ⚠️ Development environment trap: the username changes on every launch
+
+`gradlew runClient` used to start Minecraft with a random username (`Player640`,
+`Player123`, ...), visible in the log as `Setting user:`. The offline UUID is derived from
+the username, so **every launch created a different account** and the previous run's data
+vanished from the stats screen.
+
+This was never a bug: on a real installation the Mojang account UUID is stable. It is now
+pinned to `PlaytimeDev` via `args '--username'` on the `runClient` task, so test sessions are
+comparable across launches.
 
 ---
 
-## 8. À valider manuellement en jeu
+## 8. To validate manually in game
 
-L'intégration Forge ne peut pas être couverte par des tests automatisés. Points à vérifier
-lors d'une session réelle :
+Forge integration cannot be covered by automated tests. Checked during a real session:
 
-- [x] Session solo détectée : clé `singleplayer:New World` = nom du dossier de sauvegarde
-      (vérifié le 2026-08-29)
-- [x] Écran de statistiques vérifié visuellement le 2026-08-29 : bouton présent, session en
-      direct, totaux, ligne triée avec ratio coloré.
-- [ ] Écran de détail (clic sur une ligne) — pas encore vérifié visuellement
-- [ ] Rejoindre un serveur → clé `server:hôte:port`, libellé = nom dans la liste de serveurs
-- [x] **Inactivité → AFK avec retrait rétroactif** (vérifié le 2026-08-29, seuil abaissé à
-      60 s pour le test) : 25 s de jeu puis 60 s d'immobilité → bascule AFK à la seconde
-      près, `joué` inchangé, `afk` +60 s. Aucune seconde perdue ni comptée deux fois.
-- [x] **Alt-tab → AFK immédiat** (vérifié le 2026-08-29) : bascule instantanée dans les
-      deux sens, avec un retrait rétroactif nul quand le joueur était actif jusqu'au
-      basculement. Vérifié sur 5 allers-retours consécutifs, comptabilité cohérente.
-- [x] Menu pause en solo → bascule AFK immédiate (vérifié le 2026-08-29)
-- [x] **Inventaire → reste actif** (vérifié le 2026-08-29) : 122 s consécutives de
-      manipulation d'inventaire, intégralement comptées comme jouées, aucune bascule AFK.
-- [x] **Courant d'eau → AFK** (vérifié le 2026-08-29) — **le test décisif.** Joueur
-      effectivement déplacé par le courant, sans aucune entrée pendant plus d'une minute :
-      bascule AFK au seuil, `joué` inchangé. Le choix de lire `MovementInput` plutôt que la
-      position est validé en conditions réelles : un compteur basé sur le déplacement aurait
-      compté ce temps comme joué.
-- [x] Quitter le jeu par la croix → le hook de fermeture s'exécute et écrit le fichier
-      (vérifié le 2026-08-29). Confirmé avec une session réellement ouverte : `inProgress`
-      absent du JSON après fermeture, session close et enregistrée.
-- [x] **Crash → récupération** (vérifié le 2026-08-29) : processus tué via `Stop-Process
-      -Force`, donc sans aucun hook de fermeture. Au relancement,
+- [x] Singleplayer session detected: key `singleplayer:New World` = the save folder name
+      (2026-08-29)
+- [x] Stats screen verified visually (2026-08-29): button present, live session, totals,
+      coloured ratio
+- [x] **Inactivity → AFK with retroactive rollback** (2026-08-29, threshold lowered to 60 s
+      for the test): 25 s of play then 60 s of stillness → AFK to the second, `played`
+      unchanged, `afk` +60 s. Not one second lost or double-counted.
+- [x] **Alt-tab → immediate AFK** (2026-08-29): instant in both directions, with zero
+      rollback when the player was active right up to the switch. Verified over five
+      consecutive round trips, accounting coherent throughout.
+- [x] Singleplayer pause menu → immediate AFK (2026-08-29)
+- [x] **Inventory → stays active** (2026-08-29): 122 consecutive seconds of inventory
+      handling, all counted as played, no AFK transition.
+- [x] **Water current → AFK** (2026-08-29) — **the decisive test.** The player was genuinely
+      being carried by the current, with no input for over a minute: AFK at the threshold,
+      `played` unchanged. Reading `MovementInput` rather than position is validated in real
+      conditions — a movement-based counter would have counted that time as played.
+- [x] Quitting via the window close button → the shutdown hook runs and writes the file;
+      `inProgress` absent afterwards, session closed and recorded (2026-08-29)
+- [x] **Crash → recovery** (2026-08-29): process killed with `Stop-Process -Force`, so no
+      shutdown hook at all. On restart:
       `Recovered 11 minutes of play from a session the last run did not close.`
-      `inProgress` effacé, session déplacée dans `sessions` avec les valeurs exactes du
-      dernier autosave. Perte : l'intervalle d'autosave, rien de plus.
+      `inProgress` cleared, session moved into `sessions` with the exact values of the last
+      autosave. Loss: the autosave interval, nothing more.
+- [ ] **Joining a real server** → key `server:host:port`, label = the name from the server
+      list. **Still unverified.**
+- [ ] The extra dim layer that hides the crosshair behind the stats screen — compiled but not
+      yet seen in game.
 
-Realms n'apparaît pas dans cette liste : son absence de suivi est un choix assumé (§2.4).
-
-### ⚠️ Piège de l'environnement de développement : le pseudo change à chaque lancement
-
-`gradlew runClient` démarre Minecraft avec un pseudo aléatoire (`Player640`, `Player123`…),
-visible dans le log via `Setting user:`. L'UUID hors-ligne étant dérivé du pseudo,
-**chaque lancement crée un compte différent** et les données du lancement précédent
-n'apparaissent plus dans l'écran de statistiques.
-
-Ce n'est **pas** un bug : sur une installation réelle, l'UUID du compte Mojang est stable.
-Mais pour tester la GUI, il faut soit rester dans un seul lancement, soit forcer un pseudo
-fixe. Constaté le 2026-08-29 : deux sessions consécutives enregistrées sous
-`f2ba1573-…` puis `dfa57433-…`.
+Realms is absent from this list on purpose: not tracking it is a deliberate choice (§2.4).
 
 ---
 
-## 9. Notes d'implémentation GUI
+## 9. GUI implementation notes
 
-- **Le bouton est ajouté à `GuiStats` via `GuiScreenEvent.InitGuiEvent.Post`**, avec un id
-  volontairement éloigné (7913) de ceux que vanilla utilise pour ses propres boutons, et
-  l'événement d'action est annulé pour que l'écran vanilla ne réagisse pas à un id inconnu.
-- **`GuiPlaytimeStats.doesGuiPauseGame()` renvoie `false`** : ouvrir les statistiques ne
-  doit pas modifier ce que le mod est en train de mesurer.
-- **La liste est construite à l'ouverture de l'écran, pas à chaque frame.** Les totaux ne
-  changent qu'à la clôture d'une session ; retrier la liste 60 fois par seconde serait du
-  gaspillage pur.
-- **Durées formatées avec des lettres d'unité** (`5h 12m`) et non des mots : elles se lisent
-  identiquement en français et en anglais, donc les chiffres n'ont pas besoin d'être
-  traduits et les colonnes restent étroites.
-- **Code couleur du ratio** : vert au-dessus de 80 % de temps joué, rouge en dessous de
-  40 %. Un coup d'œil suffit à repérer les serveurs où l'on est surtout AFK.
-- **Dates au format année en premier** (`2026-08-29`) et non dans un ordre localisé :
-  `08/09/2026` désigne deux jours différents selon le lecteur, et le mod a des utilisateurs
-  français et anglais qui regardent les mêmes chiffres.
-- **L'historique du détail mêle sessions et mois compactés dans une seule liste**, les mois
-  étant grisés. Du point de vue du joueur c'est une seule chronologie ; le fait que les
-  entrées anciennes aient perdu leur détail est une préoccupation d'implémentation, pas un
-  critère d'organisation de l'écran.
-- **Config éditable en jeu** via `IModGuiFactory` (bouton « Config » de la liste des mods).
-  `ForgeConfig` conserve son instance `Configuration` pour que l'écran édite le même objet
-  et non une copie divergente. Tous les réglages s'appliquent sans redémarrage : le moteur
-  relit le seuil AFK à chaque évaluation au lieu de le mettre en cache.
+- **The button is added to `GuiStats` through `GuiScreenEvent.InitGuiEvent.Post`**, with an
+  id (7913) deliberately far from the small ones vanilla uses, and the action event is
+  cancelled so the vanilla screen does not react to an id it does not know.
+- **`GuiPlaytimeStats.doesGuiPauseGame()` returns `false`**: opening the statistics must not
+  change what the mod is measuring.
+- **Because the game is not paused, the HUD keeps rendering behind the screen.** The
+  crosshair sits at the exact centre — precisely where the middle of a centred line of text
+  lands — and showed through as a stray `+`. An extra dim layer hides it and the hotbar.
+- **Totals are computed once when the screen opens, not per frame.** They are derived by
+  walking every stored session, and nothing can close a session while the screen is up.
+- **Durations use unit letters** (`5h 12m`) rather than words: they read identically in
+  French and English, so the numbers need no translation and the columns stay narrow.
+- **Ratio colour coding**: green above 80 % played, red below 40 %. One glance is enough to
+  spot a destination where the player is mostly AFK.
+- **Dates are year-first** (`2026-08-29`) rather than in a locale-specific order:
+  `08/09/2026` means two different days depending on the reader.
+- **Config editable in game** through `IModGuiFactory` (the "Config" button in the mod list).
+  `ForgeConfig` keeps its `Configuration` instance so the screen edits the same file, and
+  each edit produces a **fresh immutable `PlaytimeConfig`** that the tracker publishes in one
+  assignment. Every setting applies without a restart.
 
-### Bugs d'affichage trouvés en test (corrigés le 2026-08-29)
+### Thread safety
 
-- **`Format error: %` en en-tête de colonne.** Minecraft passe toute traduction par
-  `String.format`, donc un `%` isolé dans un fichier `.lang` n'est pas un spécificateur
-  valide. Corrigé en évitant le caractère (`Ratio`). À retenir pour toute nouvelle clé.
-- **Mojibake `3Œ` sur un préfixe d'icône.** Gradle compilait avec l'encodage par défaut de
-  la plateforme (windows-1252). Corrigé par `options.encoding = 'UTF-8'` sur toutes les
-  tâches `JavaCompile` dans le `build.gradle` racine. Le préfixe a par ailleurs été retiré :
-  la police par défaut de Minecraft ne couvre guère plus que Latin-1.
-- **Lignes de liste non cliquables.** `GuiSlot.handleMouseInput()` ne traite que la molette
-  et le défilement : il ne propage **pas** les clics. Un `GuiScreen` qui héberge une
-  `GuiListExtended` doit relayer explicitement `mouseClicked` **et** `mouseReleased` vers la
-  liste, en plus de `handleMouseInput`. Sans cela la liste s'affiche et défile parfaitement,
-  mais reste inerte au clic — panne silencieuse, sans aucune erreur.
-- **Pseudo de développement fixé** à `PlaytimeDev` via `args '--username'` sur la tâche
-  `runClient`, pour que l'UUID hors-ligne reste stable entre deux lancements de test.
-  Vérifié : le log affiche bien `Setting user: PlaytimeDev`.
+`PlaytimeTracker` **and** `PlaytimeClientHandler` are **fully synchronised**. Almost every
+call arrives on the Minecraft client thread, but the shutdown hook that flushes the session
+on exit runs on its own thread while the game loop may still be ticking. Without those locks,
+that final save could interleave with an accrual, or close a session twice — or not at all.
 
-### Thread-safety
-
-`PlaytimeTracker` **et** `PlaytimeClientHandler` sont **entièrement synchronisés**. Presque tous les appels viennent du
-thread client de Minecraft, mais le hook de fermeture qui vide la session à la sortie
-s'exécute sur son propre thread, en parallèle d'une boucle de jeu qui peut encore ticker.
-Sans ces verrous, cette sauvegarde finale pourrait s'entrelacer avec une imputation de
-temps, ou fermer une session deux fois — ou pas du tout.
-
-`PlaytimeConfig` est **immuable** et **échangée d'un bloc** (champ `volatile` dans
-`PlaytimeTracker`). Un objet qu'on ne modifie jamais ne peut pas être lu à moitié écrit :
-la course disparaît par construction plutôt que par discipline. Le moteur lit la
-configuration via un `Supplier` à chaque usage, donc un réglage modifié en jeu s'applique
-immédiatement.
+`PlaytimeConfig` is **immutable** and **swapped wholesale** (a `volatile` field in
+`PlaytimeTracker`). A value that never changes cannot be observed half-written: the race
+disappears by construction rather than by discipline. The engine reads the configuration
+through a `Supplier` on every use, so a setting changed in game applies immediately.
 
 ---
 
-## 10. Documentation et intégration IDE
+## 10. Documentation and IDE integration
 
-- **`README.md`** est la documentation destinée aux joueurs et aux contributeurs :
-  ce que fait le mod, installation, table de configuration, emplacement des données, FAQ,
-  et la procédure de mise en place pour IntelliJ, Eclipse et VS Code. Le tenir à jour quand
-  une option de configuration change.
-- **`gradlew eclipse`** génère les fichiers de projet **et** les configurations de
-  lancement `forge-1.12_Client.launch` / `forge-1.12_Server.launch`.
-- **`gradlew genIntellijRuns`** doit être lancé **après** l'import dans IntelliJ : la tâche
-  écrit dans `.idea/workspace.xml`, qui n'existe pas avant. Elle échoue sinon avec
-  « Intellij workspace file could not be found ».
-- **VS Code** ne peut pas lancer Minecraft directement : ForgeGradle le démarre dans une JVM
-  forkée avec un classpath qu'il construit lui-même. On passe par
-  `runClient --debug-jvm` (port 5005) et un attachement à distance. `.vscode/` contient les
-  tâches et la configuration d'attachement prêtes à l'emploi.
-- Les fichiers de projet IDE sont **générés**, donc exclus par `.gitignore`. Seuls les
-  trois fichiers `.vscode/` écrits à la main sont versionnés.
-
+- **`README.md`** (English) is the documentation for players and contributors;
+  **`README.fr.md`** is its French translation. Keep both in step when a configuration
+  option changes.
+- **`gradlew eclipse`** generates the project files **and** the
+  `forge-1.12_Client.launch` / `forge-1.12_Server.launch` run configurations.
+- **`gradlew genIntellijRuns`** must be run **after** importing into IntelliJ: it writes into
+  `.idea/workspace.xml`, which does not exist before. Otherwise it fails with
+  "Intellij workspace file could not be found".
+- **VS Code cannot launch Minecraft directly**: ForgeGradle starts it in a forked JVM with a
+  classpath it builds itself. Use `runClient --debug-jvm` (port 5005) and remote attach;
+  `.vscode/` holds ready-made tasks and an attach configuration.
+- IDE project files are **generated**, so `.gitignore` excludes them. Only the three
+  hand-written `.vscode/` files are versioned.
 
 ---
 
-## 11. Garde-fous automatiques
+## 11. Automated guard rails
 
-- **`gradlew :core:check` échoue si `core` importe Minecraft ou Forge.** La tâche
-  `checkNoMinecraftImports` signale le fichier et la ligne. L'invariant central de
-  l'architecture est ainsi tenu par l'outillage et non par la vigilance — vérifié en
-  injectant volontairement un import interdit.
-- **CI GitHub Actions** (`.github/workflows/build.yml`) : JDK 8, cache de la décompilation
-  Minecraft, tests du moteur **avant** le setup Forge (échouer en quelques secondes plutôt
-  qu'après vingt minutes de décompilation), puis build et publication du jar en artefact.
-- **Encodage UTF-8 forcé** sur toutes les tâches `JavaCompile`.
-- **`acceptedMinecraftVersions = "[1.12.2]"`** — strictement la version compilée et testée.
+- **`gradlew :core:check` fails if `core` imports Minecraft or Forge.** The
+  `checkNoMinecraftImports` task reports the offending file and line. The central
+  architectural invariant is therefore enforced by tooling rather than vigilance — verified
+  by deliberately injecting a forbidden import.
+- **GitHub Actions CI** (`.github/workflows/build.yml`): JDK 8, cached Minecraft decompile,
+  engine tests **before** the Forge setup (fail in seconds rather than after twenty minutes
+  of decompiling), then build and jar upload.
+- **UTF-8 encoding forced** on every `JavaCompile` task.
+- **`acceptedMinecraftVersions = "[1.12.2]"`** — strictly the version compiled and tested.
+- **`.gitattributes`** pins `gradlew` to LF so the Linux CI runner does not hit
+  `bad interpreter`.
 
-## 12. Langue
+---
 
-- **Code, commentaires, javadoc, fichiers de build, `.vscode`, `.gitignore`,
-  `mcmod.info`** : anglais, sans exception.
-- **`CLAUDE.md` et `README.md`** : français, ce sont les documents de travail.
-- **Fichiers `.lang`** : c'est leur raison d'être. Parité FR/EN à maintenir — 18 clés
-  aujourd'hui, aucune orpheline, aucune manquante.
-- **Licence : MIT** (`LICENSE`). Une licence ne se révoque pas rétroactivement : les
-  versions publiées sous MIT le restent.
+## 12. Language
+
+- **Everything committed to the repository is in English**, without exception: code,
+  comments, javadoc, build files, `.vscode`, `.gitignore`, `mcmod.info`, `README.md`, and
+  this file.
+- **Translation files are the sole exception**, because that is their purpose:
+  `fr_fr.lang` and `README.fr.md`.
+- **`.lang` parity must be maintained** — 18 keys today, none orphaned, none missing.
+- Spoken and written exchanges with the user remain in **French**.
+- **Licence: MIT** (`LICENSE`). A licence cannot be revoked retroactively: versions released
+  under MIT stay MIT.
