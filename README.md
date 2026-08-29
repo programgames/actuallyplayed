@@ -226,10 +226,24 @@ le jeu en mode attente puis s'y connecte.
 > l'attachement à distance. La même approche fonctionne dans les trois IDE :
 > `./gradlew :forge-1.12:runClient --debug-jvm` ouvre le port 5005.
 
+### Contrôle qualité
+
+```bash
+./gradlew :core:check   # tests + verification architecturale
+```
+
+`checkNoMinecraftImports` fait **échouer le build** si une classe de `core` importe
+`net.minecraft.*` ou `net.minecraftforge.*`, en pointant le fichier et la ligne. La règle
+d'architecture est ainsi garantie par l'outillage, pas par la vigilance.
+
+La CI GitHub Actions exécute les tests du moteur **avant** de préparer l'espace de travail
+Forge : si la logique est cassée, on le sait en quelques secondes plutôt qu'après vingt
+minutes de décompilation.
+
 ### Structure du projet
 
 ```
-core/          Logique métier — Java pur, AUCUNE dépendance Minecraft, couvert par 79 tests
+core/          Logique métier — Java pur, AUCUNE dépendance Minecraft, couvert par 82 tests
 forge-1.12/    Couche d'adaptation Forge 1.12.2 — traduit les événements du jeu, rien de plus
 ```
 
@@ -245,11 +259,13 @@ Deux règles en découlent :
   du serveur et fausseraient la mesure.
 
 ```bash
-./gradlew :core:test   # 79 tests, sans lancer Minecraft
+./gradlew :core:test    # 82 tests, sans lancer Minecraft
+./gradlew :core:check   # les tests, plus la verification qu'aucun import Minecraft n'a glisse dans core
 ```
 
 ---
 
 ## Licence
 
-À définir.
+[MIT](LICENSE). Tu peux l'utiliser, le modifier, l'inclure dans un modpack et le
+redistribuer, y compris commercialement, à condition de conserver la mention de copyright.
