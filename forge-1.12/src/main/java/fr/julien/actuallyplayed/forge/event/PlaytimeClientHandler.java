@@ -19,6 +19,8 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.apache.logging.log4j.Logger;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 
 import java.io.IOException;
@@ -55,6 +57,26 @@ public final class PlaytimeClientHandler {
      */
     private static final long FOCUS_GRACE_MILLIS = 3000L;
 
+    /**
+     * How many mouse buttons the input fingerprint looks at. Gaming mice report a dozen or
+     * more, and the extra ones are almost always bound to a key the scan already covers.
+     */
+    private static final int TRACKED_MOUSE_BUTTONS = 8;
+
+    /**
+     * How long the window must stay unfocused before the loss is believed.
+     * <p>
+     * Other applications steal focus for a fraction of a second and give it straight back:
+     * game launchers, chat overlays, notification popups, updaters. Measured during the
+     * 2026-08-30 test session, the League of Legends client did exactly this, and each steal
+     * split the session in two. A player at their keyboard the whole time should not be
+     * charged AFK for it.
+     * <p>
+     * A real alt-tab lasts far longer than this, so it still registers almost at once, and
+     * the retroactive rollback takes back the idle tail either way.
+     */
+    private static final long FOCUS_LOSS_DEBOUNCE_MILLIS = 1500L;
+
     private final PlaytimeTracker tracker;
     private final TargetResolver resolver;
     private final Minecraft minecraft;
@@ -67,7 +89,11 @@ public final class PlaytimeClientHandler {
     private float lastYaw;
     private float lastPitch;
     private boolean hasRotationReference;
+    private long lastInputFingerprint;
+    private boolean hasInputReference;
     private boolean lastFocused = true;
+    /** When the window was first seen unfocused, or 0 while it holds focus. */
+    private long unfocusedSince;
     private ActivityState lastLoggedState;
     private long lastInputAt;
     private boolean disabled;
@@ -95,6 +121,7 @@ public final class PlaytimeClientHandler {
             updateWindowFocus();
             detectMovementIntent();
             detectCameraRotation();
+            detectRawInput();
             tracker.tick();
 
             logStateTransitions();
@@ -118,7 +145,12 @@ public final class PlaytimeClientHandler {
         }
         try {
             lastInputAt = System.currentTimeMillis();
-            if (!lastFocused) {
+            // Input proves the window has focus, but it cannot un-pause the game. Restoring
+            // focus here while the pause menu is open made the two rules contradict each
+            // other: the tick set AFK because the world was frozen, this line set PLAYING
+            // because the cursor had moved, and the state flapped at tick rate for as long as
+            // the menu stayed up. Seen in game as six transitions inside one second.
+            if (!lastFocused && !isGamePaused()) {
                 tracker.onWindowFocusChanged(true);
                 lastFocused = true;
             }
@@ -209,6 +241,8 @@ public final class PlaytimeClientHandler {
                 logger.info("[debug] session started on {} ({})", target, identity.getDisplayName());
             }
             hasRotationReference = false;
+            hasInputReference = false;
+            unfocusedSince = 0L;
             lastFocused = isWindowFocused();
         }
     }
@@ -227,6 +261,7 @@ public final class PlaytimeClientHandler {
         }
         currentTarget = null;
         hasRotationReference = false;
+        hasInputReference = false;
         reportSaveFailure();
     }
 
@@ -279,12 +314,147 @@ public final class PlaytimeClientHandler {
         lastPitch = pitch;
     }
 
+    /**
+     * Polls the raw input devices and signals activity whenever their state <em>changes</em>.
+     * <p>
+     * This duplicates, on purpose, what the event handlers at the bottom of this class
+     * already report. It exists for three reasons:
+     * <ul>
+     *   <li>A state cannot be cancelled by another mod. The {@code receiveCanceled} trap —
+     *       controller and inventory-tweak mods eating input events, and the player being
+     *       recorded AFK while playing — has no equivalent here.</li>
+     *   <li>{@code InputEvent.KeyInputEvent} does not fire while a screen is open, which is
+     *       why {@code GuiScreenEvent.KeyboardInputEvent} had to be subscribed beside it.
+     *       Polled state has no such asymmetry.</li>
+     *   <li>The client tick is the one event that exists identically on every loader and
+     *       every Minecraft version. A port only has to carry this method, not seven event
+     *       subscriptions with no Fabric equivalent. See {@code PORTING.md} §4.1.</li>
+     * </ul>
+     *
+     * <h3>Why a change and not a held state</h3>
+     * Signalling on "any key is down" would be wrong twice over. A key held at the moment of
+     * an alt-tab stays down in LWJGL's buffers for as long as the window is unfocused, which
+     * would strand the session as permanently active — the exact opposite of what §2.3 asks
+     * for. And a key genuinely held while playing is already covered: movement by
+     * {@link #detectMovementIntent()}, mining by the swing flag below.
+     * <p>
+     * A change, conversely, is real proof of focus: the state only moves when the window
+     * receives an input event from the OS, so this may safely go through
+     * {@link #signalActivity()}.
+     */
+    private void detectRawInput() {
+        long fingerprint = readInputFingerprint();
+        if (!hasInputReference) {
+            // First tick of a session: nothing to compare against. Recording the reference
+            // without signalling avoids a spurious hit on join, exactly as for rotation.
+            lastInputFingerprint = fingerprint;
+            hasInputReference = true;
+            return;
+        }
+        if (fingerprint != lastInputFingerprint) {
+            lastInputFingerprint = fingerprint;
+            signalActivity();
+        }
+    }
+
+    /**
+     * Condenses everything the player can be doing with their hands into one comparable
+     * number. Only equality matters, so any collision-resistant mixing will do.
+     */
+    private long readInputFingerprint() {
+        long fingerprint = 1L;
+
+        if (Keyboard.isCreated()) {
+            // A full sweep rather than the bound keys only: typing in chat or in a mod
+            // screen uses keys no key binding claims. 256 buffer reads per tick is noise
+            // next to a single frame.
+            for (int key = 0; key < Keyboard.KEYBOARD_SIZE; key++) {
+                if (Keyboard.isKeyDown(key)) {
+                    fingerprint = fingerprint * 31L + key;
+                }
+            }
+        }
+
+        if (Mouse.isCreated()) {
+            int buttons = Math.min(Mouse.getButtonCount(), TRACKED_MOUSE_BUTTONS);
+            for (int button = 0; button < buttons; button++) {
+                if (Mouse.isButtonDown(button)) {
+                    fingerprint = fingerprint * 31L + 1000L + button;
+                }
+            }
+            if (minecraft.currentScreen != null) {
+                // Only meaningful while a screen is open, where the cursor is released and
+                // its position is what the player is actually moving. In play the cursor is
+                // grabbed and re-centred every frame, so these coordinates would either sit
+                // still or jitter forever — and a permanent jitter would mean the mod never
+                // detects AFK at all. Mouse movement in play is caught as camera rotation.
+                fingerprint = fingerprint * 31L + Mouse.getX();
+                fingerprint = fingerprint * 31L + Mouse.getY();
+            }
+        }
+
+        EntityPlayerSP player = minecraft.player;
+        if (player != null) {
+            // The wheel leaves no state of its own, but its effect does.
+            fingerprint = fingerprint * 31L + player.inventory.currentItem;
+            // Covers mining, attacking and using an item: the arm swing outlives the click
+            // that started it by several ticks, and repeats for as long as the action does.
+            fingerprint = fingerprint * 31L + (player.isSwingInProgress ? 1L : 0L);
+        }
+
+        return fingerprint;
+    }
+
+    /**
+     * Publishes focus changes, holding a loss for {@link #FOCUS_LOSS_DEBOUNCE_MILLIS} before
+     * believing it.
+     *
+     * <h3>Why the pause menu is exempt</h3>
+     * It takes effect immediately, with no debounce. Opening it is a deliberate act and the
+     * world is genuinely frozen; waiting a second and a half would charge frozen time as
+     * played. Inventing playtime is the one failure this project treats as unforgivable
+     * (§2.3), and it is not worth trading for a transient the pause menu cannot produce.
+     *
+     * <h3>What the debounce costs</h3>
+     * On a genuine alt-tab by a player who was active right up to it, the rollback has almost
+     * nothing to take back, so up to 1.5 s of the debounce window is counted as played. That
+     * is the bounded price of not fragmenting a session every time another application blinks
+     * the focus.
+     */
     private void updateWindowFocus() {
-        boolean focused = isWindowFocused();
+        if (isGamePaused()) {
+            unfocusedSince = 0L;
+            setFocused(false);
+            return;
+        }
+
+        // Input outranks Display.isActive(), which reports a false negative on several Linux
+        // window managers, in borderless fullscreen, and across virtual desktops.
+        if (Display.isActive() || hasRecentInput()) {
+            unfocusedSince = 0L;
+            setFocused(true);
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (unfocusedSince == 0L) {
+            unfocusedSince = now;
+            return;
+        }
+        if (now - unfocusedSince >= FOCUS_LOSS_DEBOUNCE_MILLIS) {
+            setFocused(false);
+        }
+    }
+
+    private void setFocused(boolean focused) {
         if (focused != lastFocused) {
             tracker.onWindowFocusChanged(focused);
             lastFocused = focused;
         }
+    }
+
+    private boolean hasRecentInput() {
+        return System.currentTimeMillis() - lastInputAt < FOCUS_GRACE_MILLIS;
     }
 
     /**
@@ -292,18 +462,25 @@ public final class PlaytimeClientHandler {
      * running. Alt-tabbing loses it, and so does the singleplayer pause menu, where the
      * world is genuinely frozen.
      */
+    /**
+     * Whether the singleplayer pause menu has the world frozen.
+     * <p>
+     * Kept apart from focus because it outranks every proof of focus: the player may well be
+     * at their keyboard, clicking around the menu, but no time is passing in the world. Input
+     * proves where the player's attention is; it cannot un-pause the game.
+     */
+    private boolean isGamePaused() {
+        return minecraft.isSingleplayer() && minecraft.currentScreen instanceof GuiIngameMenu;
+    }
+
     private boolean isWindowFocused() {
-        // The pause menu freezes the world, so it outranks any proof of focus.
-        if (minecraft.isSingleplayer() && minecraft.currentScreen instanceof GuiIngameMenu) {
+        if (isGamePaused()) {
             return false;
-        }
-        if (Display.isActive()) {
-            return true;
         }
         // Display.isActive() reports a false negative on several Linux window managers, in
         // borderless fullscreen, and when the window sits on another virtual desktop. Recent
         // input outranks it - see signalActivity.
-        return System.currentTimeMillis() - lastInputAt < FOCUS_GRACE_MILLIS;
+        return Display.isActive() || hasRecentInput();
     }
 
     // --- discrete input and interaction events ------------------------------------------

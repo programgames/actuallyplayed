@@ -83,9 +83,28 @@ threshold. Fewer special cases means fewer bugs.
   counted are removed from it and moved into the AFK counter** (retroactive rollback —
   this is the heart of the mod).
 - Any activity restarts the active counter immediately.
-- **Game window not focused (alt-tab) → AFK at once**, without waiting for the threshold,
-  with retroactive rollback of the idle time already elapsed. Same for the singleplayer
-  pause menu.
+- **Game window not focused (alt-tab) → AFK**, without waiting for the threshold, with
+  retroactive rollback of the idle time already elapsed. Same for the singleplayer pause menu.
+
+> ⚠️ **A focus loss is held for 1.5 s before it is believed — the pause menu excepted.**
+> Other applications steal focus for a fraction of a second and hand it straight back: game
+> launchers, chat overlays, notification popups, updaters. Measured on 2026-08-30 by sampling
+> the foreground window every 400 ms against the mod's own log, the League of Legends client
+> did exactly this, and the correlation was one for one: every steal split the session and
+> charged the player AFK time while they sat at their keyboard playing.
+>
+> `FOCUS_LOSS_DEBOUNCE_MILLIS` therefore holds a loss for 1.5 s. A real alt-tab lasts far
+> longer, so it still registers almost at once.
+>
+> **The pause menu is exempt and takes effect immediately.** Opening it is a deliberate act
+> and the world is genuinely frozen; waiting would charge frozen time as played, and
+> inventing playtime is the one failure this project treats as unforgivable. A menu cannot
+> produce the sub-second transient the debounce exists for, so the exemption costs nothing.
+>
+> **What it does cost**: on a genuine alt-tab by a player active right up to it, the rollback
+> has almost nothing to take back, so up to 1.5 s of the debounce window is counted as
+> played. That bound is the price of not fragmenting a session every time another application
+> blinks the focus.
 
 > ⚠️ **Two clocks, and which is used for what.**
 > Durations are measured against `Clock.elapsedMillis()`, a monotonic counter. The wall clock
@@ -405,6 +424,45 @@ Forge integration cannot be covered by automated tests. Checked during a real se
 - [x] **Joining a real server** → key `server:host:port`, label taken from the server list
       (2026-08-30)
 - [x] The extra dim layer hides the crosshair and hotbar behind the stats screen (2026-08-30)
+
+### Re-verified after the tick-polling change (2026-08-30)
+
+Polling the input devices on every client tick was added as a second activity source beside
+the seven event subscriptions, so a port carries one method rather than seven events with no
+Fabric equivalent (see `PORTING.md` §4.1). The list above was re-run against it, threshold
+lowered to 60 s:
+
+- [x] **Passive movement → AFK** — the decisive test, re-run with a minecart circling a
+      powered-rail loop, which is the AFK-farm case in its purest form. The cart rolled for
+      the whole minute with no input: AFK at 60 s to the second, `played` frozen at `1m 4s`,
+      exactly 60 s moved into `afk`. The polled fingerprint does not read carried motion as
+      intent.
+- [x] **Pause menu → one transition, not a burst.** This one found a real defect, and it was
+      reproduced on demand before being fixed — see the trap below. After the fix: one AFK on
+      opening, one PLAYING on closing, across 25 seconds of cursor movement over the buttons.
+- [x] **Inventory handling stays active** — 118 consecutive seconds of it with no transition,
+      against a 60 s threshold. This is the case the polling had to cover cleanly, because
+      `InputEvent.KeyInputEvent` does not fire while a screen is open.
+- [x] **An open screen is not activity** — inventory left open with no input at all: AFK at
+      60 s to the second, `played` frozen. A player who walks away with their inventory up is
+      correctly counted as AFK.
+- [x] **The rewritten stats screen renders identically** — three sections with their rules,
+      the two-column details block, the coloured state and ratio, and no crosshair showing
+      through. No draw failure in the log.
+
+> ⚠️ **`signalActivity()` must not restore focus while the game is paused.**
+> `isWindowFocused()` treats the singleplayer pause menu as a hard "not focused" — the world
+> is frozen. But `signalActivity()` used to set focus back to `true` unconditionally. With
+> the pause menu open and the cursor moving, the tick set AFK because the world was frozen,
+> the signal set PLAYING because input had arrived, and the state flapped **six times in one
+> second**. Seen in game, reproduced by a controlled 10-second test, then fixed by gating the
+> restoration on `!isGamePaused()`. Input proves where the player's attention is; it cannot
+> un-pause the game.
+>
+> The contradiction predates the polling — `GuiScreenEvent.MouseInputEvent.Pre` already fed
+> `signalActivity()` from the pause menu — but the polling exercises it on the same trigger.
+> The accounting never invented or lost time during the flapping; only the state was
+> unstable.
 
 Every item on this list is now verified in game.
 
