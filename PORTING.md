@@ -291,11 +291,21 @@ that keeps 1.12 working.
 
 ## 5. Phase 2 — stand up the modern tree
 
-- [ ] `modern/` with MultiLoader source sets, Mojmap on all targets including Fabric
-- [ ] Stonecutter wired, a single active version to begin with
-- [ ] A guard that fails the build on a loader import inside `common/`
-- [ ] First target: **1.20.1 Forge**, feature-complete against 1.12
-- [ ] Re-run the §8 manual list on 1.20.1 — none of it is covered by automated tests
+- [x] `modern/` with MultiLoader source sets, Mojmap on all targets including Fabric
+- [x] A guard that fails the build on a loader import inside `common/` — `checkNoLoaderImports`
+- [x] **1.20.1 Forge** builds a self-contained jar
+- [x] **1.20.1 Fabric** builds from the same `common`, with no cross-loader runtime library
+- [ ] Read the settings from a config file on both loaders — they run on defaults today
+- [ ] Re-run the §8 manual list in game on 1.20.1 — none of it is covered by automated tests
+- [ ] Stonecutter, deferred to the second Minecraft version (§3.6)
+
+**Where it stands.** Both jars carry 34 `core` classes, 6 `common` classes, one loader class
+and the 27 generated locales. The loader-specific surface is one file per loader, about a page
+each: start the adapter, feed it the client tick, graft the button onto the vanilla Statistics
+screen. `core` needed no change of any kind, and `common` compiled against 1.20.1 on the first
+attempt.
+
+Neither jar has been launched in game yet. Building is not running.
 
 ## 6. Phase 3 — fan out
 
