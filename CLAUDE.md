@@ -508,15 +508,65 @@ server-side), [Playtime Meter](https://www.curseforge.com/minecraft/mc-mods/play
 **None of them covers Forge 1.12.2** — they are all Fabric or modern-version mods, which is
 this project's clearest opening.
 
-- [ ] **Compare in depth against
-      [Wrapped — Play Time Tracker](https://www.curseforge.com/minecraft/mc-mods/wrapped-play-time-tracker).**
-      It is the closest functional competitor: lifetime playtime aggregated across every
-      world and server, an active/AFK split, and a configurable idle threshold. From the
-      listing alone it aggregates everything together where this mod separates by
-      destination, and there is no sign of movement-intent AFK detection — but that needs
-      checking against the real thing rather than a store page. Worth knowing precisely what
-      it does before writing the CurseForge description, so the description says what is
-      genuinely different instead of claiming novelty it does not have.
+### Competitive analysis (2026-08-30)
+
+**Wrapped — Play Time Tracker could not be analysed.** No public repository, absent from
+Modrinth's API, and both its CurseForge page and minecraftwrapped.com are unreachable to
+automated fetching. From its store listing it is a Fabric 1.21 / Java 21 mod that aggregates
+a lifetime total across every world and server, splits active from AFK with a configurable
+idle threshold, shows a title-screen HUD, imports pre-existing singleplayer stats, and
+**uploads statistics to a website for a personal dashboard**. That last point is the real
+divergence: it is a cloud-connected product, this mod stores everything locally and speaks to
+nothing. Treat the rest as unverified marketing copy — the code was never seen.
+
+**spaceclouds42/PlaytimeTracker was analysed at source level** (LGPL-3.0, Kotlin + Java
+mixins, Fabric, server-side, last commit August 2021). It is the mod that holds the
+"Playtime Tracker" name on CurseForge, and the closest by intent: AFK-filtered playtime with
+what it calls strict AFK detection.
+
+What it does, from `ServerPlayNetworkHandlerMixin_TimeTracker`:
+
+- **The same central idea, arrived at independently.** On crossing the threshold it does
+  `setPlaytime(getPlaytime() - afkTime)` — it takes the AFK window back out of the recorded
+  playtime rather than leaving it there. Two implementations reaching the same conclusion is
+  good evidence the rollback is the right design, not a quirk of ours.
+- **Its only activity signal is `PlayerMoveC2SPacket.LookOnly`** — a movement packet carrying
+  rotation and no position change. `setStrictLastActionTime` is called from exactly two
+  places: player join, and that packet. Nothing else refreshes the timer.
+- **Which gives it a false-positive our design does not have.** A player who moves *and*
+  looks sends `Full` packets, not `LookOnly`. Someone running, boating or flying an elytra
+  for five minutes never emits a single `LookOnly` packet and is marked AFK while actively
+  playing. Reading `MovementInput` plus rotation plus keys plus interactions costs more code
+  and does not have that hole.
+- **It measures intervals with `Util.getMeasuringTimeMs()`**, a monotonic source, so a
+  wall-clock jump cannot affect it. **This is a lesson worth taking** — see below.
+- **Its threshold is hardcoded** at `60000L * 5L`, with no configuration.
+- **It discards AFK time rather than recording it.** There is no AFK counter and no ratio;
+  the question "how much of my time was AFK" is unanswerable there and is the headline
+  number here.
+
+### Where this mod stands
+
+| | spaceclouds42 | Actually Played |
+|---|---|---|
+| Side | Server (must be installed by the owner) | Client (works on any server) |
+| Loader / version | Fabric, modern | Forge 1.12.2 |
+| Activity signal | Rotation-only packets | Movement intent, rotation, input, interactions |
+| AFK time | Discarded | Recorded and shown, with a ratio |
+| Threshold | Hardcoded 5 min | Configurable in game, applied live |
+| Scope | The server it runs on | Every server and world, per destination |
+| Interval clock | Monotonic | Wall clock (see below) |
+| Maintained | Last commit 2021 | Active |
+
+### Optional improvement this surfaced
+
+The engine takes both its timestamps and its interval measurements from one wall clock. The
+lot-1 fix removed the bug that came from that, but a residual inaccuracy remains: during a
+backward clock jump the elapsed real time is skipped rather than counted, because `accrue`
+discards non-positive deltas. A second, **monotonic** source for durations — keeping wall
+clock only for the timestamps that get persisted — would count that time correctly. It is
+the shape the `Clock` interface already invites, and it is what the competitor does.
+Not urgent: skipping is safe, and the error is bounded by the size of the jump.
 
 ### Still to do before the first CurseForge publish
 
