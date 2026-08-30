@@ -87,16 +87,27 @@ threshold. Fewer special cases means fewer bugs.
   with retroactive rollback of the idle time already elapsed. Same for the singleplayer
   pause menu.
 
-> ⚠️ **The amount rolled back is counted as it is charged, never re-derived from a clock
-> subtraction.** `PlaytimeEngine.Session.activeSinceLastActivity` is incremented in lock-step
-> with `activeMillis` and reset by `markActive`.
-> The original implementation computed the rollback as `now - lastActivityAt`. Those two
-> quantities agree only while the clock moves forward — and an NTP correction, a manual
-> change, or the RTC skew of a dual-boot machine pulls it backwards. When that happened
-> mid-idle, the subtraction came out shorter than what had been charged and the difference
-> stayed misfiled as playtime: **5 real minutes of play were reported as 6**. Reproduced,
-> fixed, and locked in by `rollsBackEverythingChargedEvenWhenTheClockJumpedBackMidIdle`.
-> Do not "simplify" this back into a subtraction.
+> ⚠️ **Two clocks, and which is used for what.**
+> Durations are measured against `Clock.elapsedMillis()`, a monotonic counter. The wall clock
+> is used for one thing only: the dates stamped on a stored session — `startedAt`,
+> `endedAt`, the provisional `updated` field, and the retention cutoff that compares against
+> them. **Never measure a duration with `currentTimeMillis()`.**
+>
+> Two failures came from mixing them up, and both were reproduced before being fixed:
+>
+> - **A forward jump invented playtime.** An NTP correction on a machine whose clock ran slow
+>   moves the wall clock forward an hour; the engine charged that hour as if it had been
+>   played. **Five real minutes were recorded as sixty-five.** Inventing time is the worst
+>   failure available to a mod whose entire product is the measurement.
+>   Locked in by `aForwardWallClockJumpInventsNoPlaytime`.
+> - **The rollback under-corrected after a backward jump.** It used to be derived from
+>   `now - lastActivityAt`, which diverges from what was actually charged once the clock
+>   moves. `Session.activeSinceLastActivity` now counts the charge as it happens.
+>   Locked in by `rollsBackEverythingChargedEvenWhenTheClockJumpedBackMidIdle`.
+>
+> A backward jump loses nothing, contrary to a first reading of the problem: no real time
+> elapses during the jump itself, and `accrue` simply re-bases. Both jump directions now have
+> a regression test.
 
 ### 2.4 Granularity and data keys
 
@@ -558,15 +569,16 @@ What it does, from `ServerPlayNetworkHandlerMixin_TimeTracker`:
 | Interval clock | Monotonic | Wall clock (see below) |
 | Maintained | Last commit 2021 | Active |
 
-### Optional improvement this surfaced
+### What this comparison changed here
 
-The engine takes both its timestamps and its interval measurements from one wall clock. The
-lot-1 fix removed the bug that came from that, but a residual inaccuracy remains: during a
-backward clock jump the elapsed real time is skipped rather than counted, because `accrue`
-discards non-positive deltas. A second, **monotonic** source for durations — keeping wall
-clock only for the timestamps that get persisted — would count that time correctly. It is
-the shape the `Clock` interface already invites, and it is what the competitor does.
-Not urgent: skipping is safe, and the error is bounded by the size of the jump.
+Seeing the competitor measure intervals with a monotonic source prompted an audit of ours,
+which measured everything against the wall clock. The audit found a worse bug than the one
+being looked for: a **forward** clock jump credited a player with time they never played —
+five real minutes recorded as sixty-five. `Clock` now exposes both a wall clock for dates and
+a monotonic counter for durations. See the box in §2.3.
+
+The lesson generalises: reading a competitor's code is worth doing even when the competitor
+is abandoned and less capable overall. It had one thing right that we had wrong.
 
 ### Still to do before the first CurseForge publish
 

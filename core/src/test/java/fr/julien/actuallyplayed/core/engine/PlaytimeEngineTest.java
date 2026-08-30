@@ -284,25 +284,61 @@ public class PlaytimeEngineTest {
     // --- robustness --------------------------------------------------------------
 
     @Test
-    public void ignoresABackwardsClockJump() {
+    public void aForwardWallClockJumpInventsNoPlaytime() {
+        // The failure this guards against: an NTP correction on a machine whose clock was
+        // running slow moves the wall clock forward by an hour. Measuring durations against
+        // that clock credited the player with the whole hour — five real minutes of play
+        // were recorded as sixty-five. Inventing playtime is the worst thing a mod whose
+        // product is the measurement can do.
         engine.beginSession(PLAYER, SERVER);
         playActively(5);
 
-        // NTP correction, daylight saving, or the user changing the system clock.
-        clock.setTimeMillis(clock.currentTimeMillis() - 10 * MINUTE);
+        clock.setTimeMillis(clock.currentTimeMillis() + 60 * MINUTE);
+        engine.onActivity();
         engine.tick();
 
         SessionSnapshot snapshot = engine.snapshot().get();
-        assertEquals("no time is invented and none is lost", 5 * MINUTE, snapshot.getActiveMillis());
+        assertEquals("an hour that never elapsed must not be counted",
+                5 * MINUTE, snapshot.getActiveMillis());
         assertEquals(0L, snapshot.getAfkMillis());
     }
 
     @Test
+    public void aBackwardWallClockJumpChangesNothing() {
+        engine.beginSession(PLAYER, SERVER);
+        playActively(5);
+
+        clock.setTimeMillis(clock.currentTimeMillis() - 10 * MINUTE);
+        engine.tick();
+        // And real time keeps being counted correctly afterwards.
+        playActively(3);
+
+        SessionSnapshot snapshot = engine.snapshot().get();
+        assertEquals(8 * MINUTE, snapshot.getActiveMillis());
+        assertEquals(0L, snapshot.getAfkMillis());
+    }
+
+    @Test
+    public void aSessionIsStampedWithWallClockDatesNotMonotonicOnes() {
+        // The two clocks deliberately share no origin, so a session whose timestamps came
+        // from the monotonic counter would be dated somewhere around 1970.
+        long startedAt = clock.currentTimeMillis();
+        engine.beginSession(PLAYER, SERVER);
+        playActively(2);
+
+        TrackedSession session = engine.endSession().get();
+
+        assertEquals(startedAt, session.getStartedAt());
+        assertEquals(startedAt + 2 * MINUTE, session.getEndedAt());
+    }
+
+    @Test
     public void rollsBackEverythingChargedEvenWhenTheClockJumpedBackMidIdle() {
-        // Regression: the rollback used to be measured as (now - lastActivityAt), which is
-        // shorter than what was actually charged when the clock regresses during the idle
-        // stretch — an NTP correction or the RTC skew of a dual-boot machine. The excess
-        // stayed counted as playtime, in the exact direction the mod exists to prevent.
+        // Regression, from two angles. The rollback used to be measured as
+        // (now - lastActivityAt), which came out shorter than what had actually been charged
+        // when the clock regressed mid-idle, leaving the excess counted as playtime. The
+        // engine now counts what it charges, and measures durations against a monotonic
+        // clock, so a wall-clock jump in the middle of an idle stretch is a non-event.
         engine.beginSession(PLAYER, SERVER);
         playActively(5);
 

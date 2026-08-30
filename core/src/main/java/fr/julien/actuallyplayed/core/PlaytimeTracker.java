@@ -64,7 +64,7 @@ public final class PlaytimeTracker {
      */
     public synchronized StartupReport start() throws IOException {
         data = repository.load();
-        lastSaveAt = clock.currentTimeMillis();
+        lastSaveAt = clock.elapsedMillis();
 
         TrackedSession recovered = recoverInterruptedSession();
         int compacted = new RetentionPolicy(config.getRetentionDays(), zone)
@@ -168,7 +168,9 @@ public final class PlaytimeTracker {
     public synchronized void tick() {
         engine.tick();
 
-        long now = clock.currentTimeMillis();
+        // The autosave interval is a duration, so it is measured against the monotonic
+        // clock: a system-clock change must not skip or storm the autosave.
+        long now = clock.elapsedMillis();
         if (now - lastSaveAt < config.getAutosaveIntervalMillis()) {
             return;
         }
@@ -198,7 +200,7 @@ public final class PlaytimeTracker {
     /** Saves right now, snapshotting the session in progress. Used when the game closes. */
     public synchronized void saveNow() throws IOException {
         captureInProgress();
-        lastSaveAt = clock.currentTimeMillis();
+        lastSaveAt = clock.elapsedMillis();
         repository.save(data);
     }
 

@@ -11,6 +11,12 @@ import java.util.function.Supplier;
 /**
  * Splits wall-clock time into "actually played" and "AFK" for the session in progress.
  *
+ * <h3>Two clocks</h3>
+ * Durations are measured against {@link Clock#elapsedMillis()}, which only moves forward.
+ * The wall clock is used for one thing only: the dates stamped on a stored session. Reading
+ * durations from the wall clock let a forward jump — an NTP correction on a machine whose
+ * clock was running slow — credit a player with time they never played.
+ *
  * <h3>Accounting model</h3>
  * The engine holds two counters and charges every elapsed millisecond to exactly one of
  * them. Time is only accounted when the engine is driven — by {@link #tick()} or by any
@@ -67,8 +73,8 @@ public final class PlaytimeEngine {
             throw new IllegalStateException(
                     "A session is already open on " + session.target + "; close it before opening " + target);
         }
-        long now = clock.currentTimeMillis();
-        session = new Session(playerUuid, target, now);
+        session = new Session(playerUuid, target,
+                clock.currentTimeMillis(), clock.elapsedMillis());
     }
 
     /**
@@ -82,7 +88,7 @@ public final class PlaytimeEngine {
             return Optional.empty();
         }
 
-        long now = clock.currentTimeMillis();
+        long now = clock.elapsedMillis();
         // Account the tail and apply any pending rollback, so a session that ended after
         // a long idle stretch is not credited with that stretch.
         accrue(now);
@@ -100,7 +106,8 @@ public final class PlaytimeEngine {
                 finished.playerUuid,
                 finished.target,
                 finished.startedAt,
-                now,
+                // The stored end date comes from the wall clock: it is a date, not a duration.
+                clock.currentTimeMillis(),
                 finished.activeMillis,
                 finished.afkMillis));
     }
@@ -114,7 +121,7 @@ public final class PlaytimeEngine {
         if (session == null) {
             return;
         }
-        long now = clock.currentTimeMillis();
+        long now = clock.elapsedMillis();
         accrue(now);
 
         // While the window is not focused the player cannot be playing, whatever stray
@@ -134,7 +141,7 @@ public final class PlaytimeEngine {
         if (session == null) {
             return;
         }
-        long now = clock.currentTimeMillis();
+        long now = clock.elapsedMillis();
         accrue(now);
 
         if (session.windowFocused == focused) {
@@ -157,7 +164,7 @@ public final class PlaytimeEngine {
         if (session == null) {
             return;
         }
-        long now = clock.currentTimeMillis();
+        long now = clock.elapsedMillis();
         accrue(now);
         applyAfkThreshold(now);
     }
@@ -175,7 +182,7 @@ public final class PlaytimeEngine {
                 session.activeMillis,
                 session.afkMillis,
                 session.state,
-                clock.currentTimeMillis() - session.lastActivityAt));
+                clock.elapsedMillis() - session.lastActivityAt));
     }
 
     public boolean isSessionActive() {
@@ -188,8 +195,8 @@ public final class PlaytimeEngine {
     private void accrue(long now) {
         long elapsed = now - session.lastAccountedAt;
         if (elapsed <= 0L) {
-            // Guards against a clock that jumped backwards (NTP correction, DST, manual
-            // change). Skipping is safer than charging a negative duration.
+            // Belt and braces. The monotonic clock should never regress, but charging a
+            // negative duration would corrupt every total downstream, so the guard stays.
             session.lastAccountedAt = now;
             return;
         }
@@ -243,8 +250,10 @@ public final class PlaytimeEngine {
 
         final String playerUuid;
         final TargetKey target;
+        /** Wall-clock date the session began, for the record that gets stored. */
         final long startedAt;
 
+        /** Both measured against the monotonic clock: these exist only to be subtracted. */
         long lastAccountedAt;
         long lastActivityAt;
         long activeMillis;
@@ -254,13 +263,13 @@ public final class PlaytimeEngine {
         ActivityState state = ActivityState.ACTIVE;
         boolean windowFocused = true;
 
-        Session(String playerUuid, TargetKey target, long startedAt) {
+        Session(String playerUuid, TargetKey target, long startedAt, long startedElapsed) {
             this.playerUuid = playerUuid;
             this.target = target;
             this.startedAt = startedAt;
-            this.lastAccountedAt = startedAt;
+            this.lastAccountedAt = startedElapsed;
             // Joining a world is an activity in itself: the session starts active.
-            this.lastActivityAt = startedAt;
+            this.lastActivityAt = startedElapsed;
         }
     }
 }
