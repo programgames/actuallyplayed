@@ -405,6 +405,30 @@ now demonstrated rather than argued.
 A player moving from 1.12 to 1.20 therefore keeps their history. That was not designed for; it
 falls out of sharing `core`, and it is worth not breaking.
 
+### Verified in game on 1.21.1 NeoForge (2026-08-30)
+
+- [x] The mod loads, `ClientTickEvent.Post` feeds the adapter, and the session opens on the
+      save folder.
+- [x] The pause menu produces two clean transitions.
+- [x] **The stats screen renders correctly**, which is what mattered: it is the only code path
+      that executes the 1.21 variant of `ScreenBackground`, and therefore the only proof that
+      the per-version source directory of §3.7 works end to end.
+
+> ⚠️ **On 1.21, `Screen.render()` draws the background itself — 1.20.1 did not.**
+> The first run came out with every line of text blurred and only the Done button sharp. The
+> screen drew its background, then its text, then called `super.render()`, which on 1.21 begins
+> by calling `renderBackground()` again — over everything already drawn, and 1.21's background
+> is blurred. Only the widgets, drawn afterwards, survived.
+>
+> `super.render()` is no longer called at all: the screen draws its one widget itself, which is
+> what `Screen.render()` does once its background call is set aside. That **removes** a version
+> difference rather than adding one, and `ScreenBackground` stays the only place the two
+> versions diverge.
+>
+> Worth noting about the failure: everything else in that first render was already correct —
+> the three sections, the rules, the coloured state and ratio, the two-column details. The
+> shared model in `core` produces the same screen on all three Minecraft versions.
+
 > ⚠️ **The vanilla stats screen has no room at the bottom on 1.20.** The first attempt put
 > the button at `height - 52`, which is where the General / Items / Mobs tabs live, with Done
 > at `height - 28` and only twelve pixels of gap above them. It drew "Playtime" straight over
@@ -412,9 +436,9 @@ falls out of sharing `core`, and it is worth not breaking.
 
 ## 6. Phase 3 — fan out
 
-- [x] NeoForge 1.21.1 — jar builds
-- [x] Fabric 1.21.1 — jar builds
-- [ ] Run both 1.21.1 jars in game
+- [x] NeoForge 1.21.1 — verified in game (2026-08-30), see below
+- [x] Fabric 1.21.1 — jar builds; not yet run in game, and everything it would exercise beyond
+      its entry point was covered by the 1.20.1 Fabric run and the 1.21.1 NeoForge one
 - [ ] Latest 1.21.x — expect the 1.21.5 render-pipeline break to hit the draw loop, and
       nothing else
 - [ ] 1.16.5 Forge

@@ -48,6 +48,13 @@ public final class PlaytimeStatsScreen extends Screen {
     private int top;
 
     /**
+     * Kept so {@link #render} can draw it without going through {@code super.render()}, which
+     * on 1.21 would redraw the background over everything else. Still registered through
+     * {@code addRenderableWidget} so that clicks reach it.
+     */
+    private Button done;
+
+    /**
      * The stored totals, read once when the screen opens.
      * <p>
      * They are derived by walking every session and aggregate, and nothing can close a session
@@ -68,7 +75,7 @@ public final class PlaytimeStatsScreen extends Screen {
         // short screen.
         top = Math.max(6, (height - 36 - StatsScreenModel.CONTENT_HEIGHT) / 2);
 
-        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> onClose())
+        done = addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> onClose())
                 .bounds(width / 2 - 100, height - 28, 200, 20)
                 .build());
 
@@ -108,7 +115,19 @@ public final class PlaytimeStatsScreen extends Screen {
                 draw(graphics, line);
             }
 
-            super.render(graphics, mouseX, mouseY, partialTick);
+            // The widgets, drawn by hand rather than through super.render().
+            //
+            // On 1.21 Screen.render() begins by calling renderBackground() itself, which 1.20.1
+            // did not. Calling it here therefore redrew the background OVER everything above -
+            // and 1.21's background is blurred, so the whole screen came out blurred with only
+            // the Done button, rendered afterwards, sharp. Seen in game on NeoForge 1.21.1.
+            //
+            // Drawing the one widget this screen owns is exactly what Screen.render() does
+            // once its own background call is set aside, and it behaves the same on both
+            // versions - so this removes a version difference rather than adding one.
+            if (done != null) {
+                done.render(graphics, mouseX, mouseY, partialTick);
+            }
         } catch (Throwable t) {
             // Rendering runs every frame, so a failure here would repeat sixty times a second
             // and end as a crash report naming this mod. Close the screen instead: the player
