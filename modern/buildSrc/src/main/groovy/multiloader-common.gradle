@@ -1,0 +1,98 @@
+// Shared configuration for every module of the modern build.
+//
+// Adapted from jaredlll08/MultiLoader-Template, with two things removed because this mod does
+// not need them: Mixin wiring (the adapter reads polled state and subscribes to ordinary
+// events, so it never has to patch a vanilla class) and Maven publishing, along with the
+// capability declarations that only existed to serve it.
+
+plugins {
+    id 'java-library'
+}
+
+base {
+    archivesName = "${mod_id}-${project.name}-${minecraft_version}"
+}
+
+java {
+    // A language version rather than a path: the foojay resolver in settings.gradle fetches
+    // the JDK if this machine does not have it, so the build does not depend on what happens
+    // to be installed.
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+}
+
+// Gradle would otherwise compile with the platform default encoding, which on this machine is
+// windows-1252. The 1.12 build was bitten by exactly that, and the mojibake only showed up in
+// game. See CLAUDE.md section 7.
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    mavenCentral()
+    exclusiveContent {
+        forRepositories(
+                maven {
+                    name = 'ParchmentMC'
+                    url = 'https://maven.parchmentmc.org/'
+                },
+                maven {
+                    name = 'NeoForged'
+                    url = 'https://maven.neoforged.net/releases'
+                }
+        )
+        filter { includeGroup('org.parchmentmc.data') }
+    }
+}
+
+jar {
+    from(rootProject.file('../LICENSE')) {
+        rename { "${it}_${mod_name}" }
+    }
+
+    manifest {
+        attributes([
+                'Specification-Title'   : mod_name,
+                'Specification-Vendor'  : mod_author,
+                'Specification-Version' : project.jar.archiveVersion,
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': project.jar.archiveVersion,
+                'Implementation-Vendor' : mod_author,
+                'Built-On-Minecraft'    : minecraft_version
+        ])
+    }
+}
+
+processResources {
+    var expandProps = [
+            'version'                  : version,
+            'group'                    : project.group,
+            'minecraft_version'        : minecraft_version,
+            'minecraft_version_range'  : minecraft_version_range,
+            'fabric_version'           : fabric_version,
+            'fabric_loader_version'    : fabric_loader_version,
+            'mod_name'                 : mod_name,
+            'mod_author'               : mod_author,
+            'mod_id'                   : mod_id,
+            'license'                  : license,
+            'description'              : description,
+            'forge_version'            : forge_version,
+            'forge_loader_version_range': forge_loader_version_range,
+            'credits'                  : credits,
+            'java_version'             : java_version
+    ]
+
+    // A newline typed into gradle.properties is a real newline by the time it reaches here,
+    // and a real newline inside a JSON string is a parse error.
+    var jsonExpandProps = expandProps.collectEntries { key, value ->
+        [(key): value instanceof String ? value.replace('\n', '\\\\n') : value]
+    }
+
+    filesMatching(['META-INF/mods.toml']) {
+        expand expandProps
+    }
+    filesMatching(['pack.mcmeta', 'fabric.mod.json']) {
+        expand jsonExpandProps
+    }
+
+    inputs.properties(expandProps)
+}

@@ -1,0 +1,31 @@
+plugins {
+    id 'multiloader-loader'
+    id 'fabric-loom'
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+
+    // Official Mojang mappings on Fabric too, not Yarn. This is not a preference: `common` is
+    // compiled by both loader modules, and shared source is only possible when both agree on
+    // what the classes are called. See PORTING.md section 3.2.
+    mappings loom.layered {
+        officialMojangMappings()
+        parchment("org.parchmentmc.data:parchment-${parchment_minecraft}:${parchment_version}@zip")
+    }
+
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+}
+
+loom {
+    runs {
+        client {
+            client()
+            setConfigName('Fabric Client')
+            ideConfigGenerated(true)
+            runDir('run')
+            programArgs '--username', 'PlaytimeDev'
+        }
+    }
+}

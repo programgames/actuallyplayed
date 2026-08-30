@@ -117,17 +117,55 @@ graphics.drawString(font, line.text(), x, y, line.color());
 *///?}
 ```
 
-### 3.5 Target layout
+### 3.5 `modern/` is a separate Gradle build, not a subproject
+
+Found while starting phase 2, and it corrects the layout this section first sketched.
+
+The root build **enforces JDK 8** and runs on **Gradle 4.10.3**, because ForgeGradle 2.3
+requires both. Every modern toolchain — ModDevGradle, Fabric Loom, Stonecutter — requires
+Gradle 8+ and JDK 17 or 21. One Gradle build cannot be both. `modern/` therefore has its
+**own wrapper, its own Gradle version and its own JDK**, and the two builds never meet.
+
+`core` is shared as **source, not as an artefact**: `modern/` adds
+`../../core/src/main/java` as a source directory. A composite build would have to make
+`core` a standalone build whose script satisfies Gradle 4 and Gradle 8 at once, for no gain —
+`core` has one compile-only dependency (Gson, which Minecraft ships on every version) and
+nothing else. There is still exactly one copy of the source; it is simply compiled twice.
+
+`core`'s tests stay in the 1.12 build. They are version-agnostic and nothing is gained by
+running them twice.
+
+### 3.6 MultiLoader first, Stonecutter when the second version lands
+
+Both are unfamiliar toolchains. Standing them up together means debugging two at once with
+nothing working to compare against, so `modern/` starts as **MultiLoader only, at 1.20.1**,
+and Stonecutter arrives with the second Minecraft version — which is when it first earns its
+keep. Until then a single version needs no preprocessor.
+
+### 3.7 Target layout
 
 ```
 actually-played/
-├─ core/                     shared by everything, unchanged
-├─ forge-1.12/               ForgeGradle 2.3, JDK 8, isolated
-└─ modern/                   Stonecutter x MultiLoader, Mojmap throughout
-   ├─ common/                most of the adapter, vanilla-only
-   ├─ fabric/                entry point + loader glue
-   └─ neoforge/ (+ forge/)   entry point + loader glue
+├─ core/                     shared as SOURCE by both builds
+├─ forge-1.12/               ForgeGradle 2.3, Gradle 4.10.3, JDK 8
+│
+└─ modern/                   its own Gradle build — own wrapper, Gradle 8, JDK 17+
+   ├─ common/                most of the adapter, vanilla-only, Mojmap
+   ├─ forge/                 entry point + loader glue
+   └─ fabric/                entry point + loader glue
 ```
+
+### 3.8 Toolchains on this machine
+
+| | Installed | Needed by |
+|---|---|---|
+| JDK 8 | `C:\Program Files\Eclipse Adoptium\jdk-8.0.472.8-hotspot` | 1.12.2 |
+| JDK 17 | `C:\Program Files\Java\jdk-17` | 1.20.1, 1.18.2, 1.19.2 |
+| JDK 21 | **absent** | **1.21.x — blocks phase 3** |
+| JDK 25 | `C:\Program Files\Java\java25` | can run Gradle, cannot target 21 on its own |
+
+JDK 21 is missing and 1.21.1 cannot be built without it. Either install it, or let Gradle's
+toolchain auto-provisioning fetch it. **Open question for the user, raised before phase 3.**
 
 ---
 

@@ -1,0 +1,165 @@
+// The adapter, compiled against vanilla Minecraft alone.
+//
+// Nothing here may reference a mod loader. That is the whole point of the module: it is the
+// 90% of the port that is the same on Forge, NeoForge and Fabric, and the guard at the bottom
+// of this file makes the rule fail the build rather than rely on vigilance -- the same
+// approach as `checkNoMinecraftImports` on `core`, one level up.
+
+plugins {
+    id 'multiloader-common'
+    id 'net.neoforged.moddev.legacyforge'
+}
+
+legacyForge {
+    // No loader, just a deobfuscated Minecraft to compile against.
+    mcpVersion = minecraft_version
+    parchment {
+        minecraftVersion = parchment_minecraft
+        mappingsVersion = parchment_version
+    }
+}
+
+// `core` is shared as SOURCE, not as an artifact.
+//
+// The two Gradle builds cannot depend on each other -- the root one runs Gradle 4.10.3 on
+// JDK 8 for ForgeGradle 2.3, this one needs Gradle 8 on JDK 17. Pointing at the source
+// directory keeps exactly one copy of it in the repository and simply compiles it twice.
+// `core` has one compile-only dependency, Gson, which every Minecraft version ships.
+def coreJava = rootProject.file('../core/src/main/java')
+
+sourceSets.main.java.srcDir coreJava
+
+dependencies {
+    compileOnly group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+}
+
+// --- translations ------------------------------------------------------------------------
+//
+// Minecraft wants JSON from 1.13 onward, and the `.lang` files remain the single source of
+// truth (PORTING.md section 4.3). The root build has the same task for its own purposes;
+// duplicating forty lines is the price of two builds that cannot share code, and the
+// conversion is small enough that the duplication is honest.
+
+def langSources = rootProject.file('../forge-1.12/src/main/resources/assets/actuallyplayed/lang')
+def langOutput = layout.buildDirectory.dir('generated/lang').get().asFile
+
+task generateLangJson {
+    description = 'Generates 1.13+ JSON translations from the .lang sources.'
+    group = 'build'
+
+    inputs.files fileTree(dir: langSources, include: '*.lang')
+    outputs.dir langOutput
+
+    doLast {
+        def backslash = '\\'
+        def quote = '"'
+        def escape = { String value ->
+            // Backslash first: escaping it afterwards would double the ones the quotes added.
+            def escaped = value
+                    .replace(backslash, backslash + backslash)
+                    .replace(quote, backslash + quote)
+                    .replace('\n', backslash + 'n')
+                    .replace('\r', backslash + 'r')
+                    .replace('\t', backslash + 't')
+            escaped.each { String character ->
+                int code = character.charAt(0) as int
+                if (code < 0x20) {
+                    throw new GradleException('A translation holds a control character (U+' +
+                            String.format('%04X', code) + ') that JSON cannot represent: ' + value)
+                }
+            }
+            return escaped
+        }
+
+        def target = new File(langOutput, "assets/${mod_id}/lang")
+        target.deleteDir()
+        target.mkdirs()
+
+        fileTree(dir: langSources, include: '*.lang').sort { it.name }.each { File source ->
+            def entries = [:]
+            source.getText('UTF-8').readLines().each { line ->
+                def trimmed = line.trim()
+                if (trimmed.isEmpty() || trimmed.startsWith('#')) {
+                    return
+                }
+                def separator = line.indexOf('=')
+                if (separator < 0) {
+                    return
+                }
+                // The key is trimmed, the value is not: a translation may legitimately end on
+                // a space, and the 1.12 parser keeps it.
+                entries[line.substring(0, separator).trim()] = line.substring(separator + 1)
+            }
+
+            def body = entries.collect { key, value ->
+                "  \"${escape(key)}\": \"${escape(value)}\""
+            }.join(',' + '\n')
+
+            new File(target, source.name.replace('.lang', '.json'))
+                    .setText('{' + '\n' + body + '\n' + '}' + '\n', 'UTF-8')
+        }
+
+        logger.lifecycle("Translations: generated ${target.listFiles().length} JSON locales.")
+    }
+}
+
+// --- what the loader modules consume -------------------------------------------------------
+//
+// Source directories, not a jar. Unlike the upstream template this module has more than one of
+// each, so they cannot be published with `singleFile`.
+
+configurations {
+    commonJava {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+    commonResources {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+}
+
+artifacts {
+    sourceSets.main.java.srcDirs.each { commonJava it }
+    sourceSets.main.resources.srcDirs.each { commonResources it }
+    commonResources(langOutput) {
+        builtBy generateLangJson
+    }
+}
+
+// --- guard rail ------------------------------------------------------------------------------
+
+task checkNoLoaderImports {
+    description = 'Fails the build if common references a mod loader.'
+    group = 'verification'
+
+    def sources = fileTree(dir: 'src', include: '**/*.java')
+    inputs.files sources
+
+    doLast {
+        // NeoForge and Forge share the `net.minecraftforge` prefix on 1.20.1, so both are
+        // covered by the first alternative.
+        def forbidden = ~/^\s*import\s+(net\.minecraftforge|net\.neoforged|net\.fabricmc)\./
+        def offenders = []
+
+        sources.each { file ->
+            file.readLines().eachWithIndex { line, index ->
+                if (forbidden.matcher(line).find()) {
+                    offenders << "  ${file.name}:${index + 1}  ${line.trim()}"
+                }
+            }
+        }
+
+        if (!offenders.isEmpty()) {
+            throw new GradleException(
+                    'The `common` module must never reference a mod loader.' +
+                    System.lineSeparator() +
+                    'Move this code into forge/ or fabric/, or express it through an interface ' +
+                    'that each loader implements:' +
+                    System.lineSeparator() +
+                    offenders.join(System.lineSeparator()))
+        }
+    }
+}
+
+check.dependsOn checkNoLoaderImports

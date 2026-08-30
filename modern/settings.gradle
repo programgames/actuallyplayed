@@ -1,0 +1,33 @@
+// `modern/` is a Gradle build of its own, deliberately separate from the one at the repo
+// root. The root build enforces JDK 8 and runs Gradle 4.10.3 because ForgeGradle 2.3 needs
+// both; every toolchain used here needs Gradle 8+ and JDK 17 or later. One build cannot be
+// both. See PORTING.md section 3.5.
+
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            name = 'NeoForged'
+            url = 'https://maven.neoforged.net/releases'
+        }
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+    }
+}
+
+plugins {
+    // Provisions the JDK a module asks for when it is not installed, so the build does not
+    // depend on what happens to be on the machine.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
+rootProject.name = 'modern'
+
+// The adapter, compiled against vanilla Minecraft alone. Its source is handed to each loader
+// module and compiled into that module's jar, so nothing here ships as a separate artifact.
+include 'common'
+
+include 'forge'
+include 'fabric'

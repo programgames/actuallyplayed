@@ -1,0 +1,36 @@
+// Configuration shared by the loader modules (forge, fabric).
+//
+// The mechanism worth understanding: `common` publishes its *source directories*, not a jar.
+// Each loader module compiles that source into its own artifact, so the finished mod is a
+// single self-contained file with no shared library to install alongside it. That is what
+// lets this project reject Architectury API (PORTING.md section 3.3) rather than merely
+// preferring not to use it.
+
+plugins {
+    id 'multiloader-common'
+}
+
+configurations {
+    commonJava {
+        canBeResolved = true
+    }
+    commonResources {
+        canBeResolved = true
+    }
+}
+
+dependencies {
+    compileOnly project(':common')
+    commonJava project(path: ':common', configuration: 'commonJava')
+    commonResources project(path: ':common', configuration: 'commonResources')
+}
+
+tasks.named('compileJava', JavaCompile) {
+    dependsOn(configurations.commonJava)
+    source(configurations.commonJava)
+}
+
+processResources {
+    dependsOn(configurations.commonResources)
+    from(configurations.commonResources)
+}
