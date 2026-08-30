@@ -505,8 +505,12 @@ falls out of sharing `core`, and it is worth not breaking.
       its entry point was covered by the 1.20.1 Fabric run and the 1.21.1 NeoForge one
 - [ ] Latest 1.21.x — expect the 1.21.5 render-pipeline break to hit the draw loop, and
       nothing else
-- [x] 1.16.5 Forge and Fabric — both jars build; neither has been run in game.
-      `fabric-screen-api-v1` does exist on 1.16, so the concern raised about it was unfounded.
+- [x] **1.16.5 Forge — verified in game** (2026-08-30): the mod loads, the session opens on the
+      save folder, the pause menu switches cleanly, and the stats screen renders. That last one
+      is what mattered: it exercises the `PoseStack` screen, written without ever being run, and
+      the four per-version accessor classes. No draw failure in the log.
+- [x] 1.16.5 Fabric — jar builds; `fabric-screen-api-v1` does exist on 1.16, so the concern
+      raised about it was unfounded. Not run in game.
 - [ ] 1.19.2 / 1.18.2 as filler
 - [ ] Release workflow extended to build and attach the whole matrix
 - [x] CI builds every loader of every modern version, as a matrix beside the 1.12 job
