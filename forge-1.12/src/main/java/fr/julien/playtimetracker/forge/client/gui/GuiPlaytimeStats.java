@@ -15,6 +15,7 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.TextFormatting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
 import java.time.ZoneId;
@@ -43,6 +44,19 @@ public class GuiPlaytimeStats extends GuiScreen {
 
     private static final int BUTTON_DONE = 200;
     private static final int RULE_HALF_WIDTH = 150;
+
+    /**
+     * Height of the whole block of text, used to centre it vertically.
+     * <p>
+     * Every row used to be placed at a literal distance from the top of the screen. That is
+     * fine at GUI scale 4, where the scaled height is barely larger than the content — and
+     * absurd at GUI scale 1 on a 1440p monitor, where the content huddles in the top 200
+     * pixels and the Done button sits a thousand pixels below it.
+     */
+    private static final int CONTENT_HEIGHT = 190;
+
+    /** Vertical offset of the content block, computed once per layout. */
+    private int top;
 
     private final GuiScreen parent;
     private final PlaytimeTracker tracker;
@@ -80,6 +94,10 @@ public class GuiPlaytimeStats extends GuiScreen {
 
     private void build() {
         buttonList.clear();
+
+        // Centred in the space above the Done button, but never crowding the top edge on a
+        // short screen.
+        top = Math.max(6, (height - 36 - CONTENT_HEIGHT) / 2);
         buttonList.add(new GuiButton(BUTTON_DONE, width / 2 - 100, height - 28, I18n.format("gui.done")));
 
         // Resolved once: the recorded totals only change when a session closes, which
@@ -95,6 +113,21 @@ public class GuiPlaytimeStats extends GuiScreen {
         recordedSessions = target == null ? 0 : target.getSessionCount();
         recordedLongest = target == null ? 0L : target.getLongestSessionMillis();
         recordedFirstSeen = target == null ? 0L : target.getFirstSeenAt();
+    }
+
+    /**
+     * Sends ESC back to the Statistics screen rather than straight into the game.
+     * <p>
+     * {@code GuiScreen} closes to the world by default, which would make ESC and the Done
+     * button disagree. Vanilla sub-screens return to their parent.
+     */
+    @Override
+    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        if (keyCode == Keyboard.KEY_ESCAPE) {
+            mc.displayGuiScreen(parent);
+            return;
+        }
+        super.keyTyped(typedChar, keyCode);
     }
 
     @Override
@@ -125,13 +158,13 @@ public class GuiPlaytimeStats extends GuiScreen {
         // An extra dim layer hides it and the hotbar, and makes the numbers easier to read.
         drawRect(0, 0, width, height, 0xC0101010);
 
-        drawCenteredString(fontRenderer, I18n.format("playtimetracker.gui.title"), width / 2, 14, 0xFFFFFF);
+        drawCenteredString(fontRenderer, I18n.format("playtimetracker.gui.title"), width / 2, top, 0xFFFFFF);
 
         Optional<SessionSnapshot> snapshot = tracker.snapshot();
         if (!snapshot.isPresent()) {
             drawCenteredString(fontRenderer,
                     TextFormatting.GRAY + I18n.format("playtimetracker.gui.noSession"),
-                    width / 2, height / 2 - 8, 0xFFFFFF);
+                    width / 2, top + 40, 0xFFFFFF);
             super.drawScreen(mouseX, mouseY, partialTicks);
             return;
         }
@@ -152,12 +185,18 @@ public class GuiPlaytimeStats extends GuiScreen {
                 ? "playtimetracker.gui.type.world"
                 : "playtimetracker.gui.type.server");
 
-        drawCenteredString(fontRenderer, TextFormatting.YELLOW + name, width / 2, 34, 0xFFFFFF);
+        // A server label is whatever the player typed into their server list, so its
+        // length is unbounded and a long one would run off both edges.
+        int room = Math.min(width - 20, RULE_HALF_WIDTH * 2);
+        drawCenteredString(fontRenderer, TextFormatting.YELLOW + fontRenderer.trimStringToWidth(name, room),
+                width / 2, top + 20, 0xFFFFFF);
 
         // The address is worth showing for a server, where the label is a nickname the
         // player chose; for a world it would merely repeat the name above.
         String subtitle = world ? type : type + " - " + session.getTarget().getId();
-        drawCenteredString(fontRenderer, TextFormatting.DARK_GRAY + subtitle, width / 2, 46, 0x808080);
+        drawCenteredString(fontRenderer,
+                TextFormatting.DARK_GRAY + fontRenderer.trimStringToWidth(subtitle, room),
+                width / 2, top + 32, 0x808080);
     }
 
     private void drawCurrentSession(SessionSnapshot session) {
@@ -166,12 +205,12 @@ public class GuiPlaytimeStats extends GuiScreen {
                         DurationFormatter.format(session.getIdleMillis()))
                 : TextFormatting.GREEN + I18n.format("playtimetracker.gui.state.active");
 
-        drawSectionTitle("playtimetracker.gui.section.session", 68);
+        drawSectionTitle("playtimetracker.gui.section.session", top + 54);
         drawCenteredString(fontRenderer,
                 TextFormatting.GRAY + I18n.format("playtimetracker.gui.status") + " " + state,
-                width / 2, 84, 0xFFFFFF);
+                width / 2, top + 70, 0xFFFFFF);
         drawCenteredString(fontRenderer, pair(session.getActiveMillis(), session.getAfkMillis()),
-                width / 2, 96, 0xFFFFFF);
+                width / 2, top + 82, 0xFFFFFF);
     }
 
     private void drawTotals(SessionSnapshot session) {
@@ -180,16 +219,16 @@ public class GuiPlaytimeStats extends GuiScreen {
         long total = active + afk;
         double ratio = total == 0L ? 0.0d : (double) active / (double) total;
 
-        drawSectionTitle("playtimetracker.gui.section.destination", 118);
-        drawCenteredString(fontRenderer, pair(active, afk), width / 2, 134, 0xFFFFFF);
+        drawSectionTitle("playtimetracker.gui.section.destination", top + 104);
+        drawCenteredString(fontRenderer, pair(active, afk), width / 2, top + 120, 0xFFFFFF);
         drawCenteredString(fontRenderer,
                 TextFormatting.GRAY + I18n.format("playtimetracker.gui.detail.ratio") + " "
                         + ratioColour(ratio) + DurationFormatter.formatPercent(ratio),
-                width / 2, 146, 0xFFFFFF);
+                width / 2, top + 132, 0xFFFFFF);
     }
 
     private void drawDetails(SessionSnapshot session) {
-        drawSectionTitle("playtimetracker.gui.section.details", 168);
+        drawSectionTitle("playtimetracker.gui.section.details", top + 154);
 
         int sessions = recordedSessions + 1;
         long total = recordedActive + recordedAfk + session.getTotalMillis();
@@ -200,7 +239,7 @@ public class GuiPlaytimeStats extends GuiScreen {
 
         int left = width / 2 - RULE_HALF_WIDTH + 6;
         int right = width / 2 + RULE_HALF_WIDTH - 6;
-        int y = 184;
+        int y = top + 170;
 
         drawPair(left, y, "playtimetracker.gui.detail.firstSeen", DateFormatter.formatDate(firstSeen, zone));
         drawPair(left, y + 12, "playtimetracker.gui.detail.sessionCount", String.valueOf(sessions));
