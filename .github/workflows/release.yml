@@ -28,6 +28,10 @@ jobs:
       fail-fast: true
       matrix:
         include:
+          - mc: '1.7.10'
+            # RetroFuturaGradle targets Java 8 but runs on a modern JDK.
+            jdk: '17'
+            build: legacy17
           - mc: '1.12.2'
             # ForgeGradle 2.3 and Gradle 4.10.3 do not run on any JDK newer than 8.
             jdk: '8'
@@ -135,6 +139,11 @@ jobs:
         if: matrix.build == 'legacy'
         run: ./gradlew build --no-daemon --stacktrace
 
+      - name: Build 1.7.10
+        if: matrix.build == 'legacy17'
+        working-directory: legacy-1.7
+        run: ./gradlew build --no-daemon --stacktrace
+
       - name: Build ${{ matrix.mc }}
         if: matrix.build == 'modern'
         working-directory: modern
@@ -145,7 +154,9 @@ jobs:
       - name: Collect the jars
         run: |
           mkdir -p release
-          if [ "${{ matrix.build }}" = "legacy" ]; then
+          if [ "${{ matrix.build }}" = "legacy17" ]; then
+            cp legacy-1.7/build/libs/actuallyplayed-*[0-9].jar release/
+          elif [ "${{ matrix.build }}" = "legacy" ]; then
             cp forge-1.12/build/libs/actuallyplayed-*[0-9].jar release/
           else
             cp modern/forge/build/libs/actuallyplayed-forge-*[0-9].jar release/ 2>/dev/null || true

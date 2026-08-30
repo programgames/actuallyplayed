@@ -209,6 +209,10 @@ always shipped, instead of the newer one it happens to prefer today.
 
 ### 3.9 1.7.10 is a third Gradle build, on RetroFuturaGradle
 
+**Verified in game on 2026-08-31**: the mod loads, the session opens, the translations resolve
+and the stats screen renders. Getting there took three fixes, two of them 1.7.10-specific and
+one shared by every version — see the boxes below.
+
 It cannot join `modern/`: 1.7.10 predates Mojang mappings by seven years (§3.2). It cannot join
 the root build either, because RetroFuturaGradle needs a modern Gradle and ForgeGradle 2.3
 refuses one. So it is a build of its own, sharing `core` as source like everything else.

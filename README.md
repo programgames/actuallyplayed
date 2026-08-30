@@ -10,6 +10,7 @@ separating **time actually played** from **time spent AFK**.
 
 | Minecraft | Loader |
 |---|---|
+| 1.7.10 | Forge 10.13.4.1614+ |
 | 1.12.2 | Forge 14.23.5.2847+ |
 | 1.16.5 | Forge 36.2.39+ · Fabric |
 | 1.20.1 | Forge 47.2.30+ · Fabric |

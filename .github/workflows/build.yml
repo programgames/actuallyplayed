@@ -133,3 +133,40 @@ jobs:
             modern/neoforge/build/libs/*.jar
             modern/fabric/build/libs/*.jar
           if-no-files-found: error
+
+  legacy-1-7:
+    name: Minecraft 1.7.10 (Forge)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: legacy-1.7
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # RetroFuturaGradle targets Java 8 but runs on a modern JDK, unlike the 1.12 build where
+      # ForgeGradle 2.3 forces Gradle itself onto 8.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Gradle and the Minecraft artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-legacy17-${{ hashFiles('legacy-1.7/**/*.gradle', 'legacy-1.7/gradle.properties') }}
+          restore-keys: ${{ runner.os }}-legacy17-
+
+      - name: Build the mod
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Upload the jar
+        uses: actions/upload-artifact@v7
+        with:
+          name: actuallyplayed-1.7.10
+          path: legacy-1.7/build/libs/actuallyplayed-*[0-9].jar
+          if-no-files-found: error
