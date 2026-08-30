@@ -7,11 +7,14 @@ import fr.julien.playtimetracker.core.model.TrackedSession;
 import fr.julien.playtimetracker.core.storage.JsonPlaytimeStore;
 import fr.julien.playtimetracker.core.storage.UnsupportedSchemaException;
 import fr.julien.playtimetracker.core.util.DurationFormatter;
+import fr.julien.playtimetracker.forge.client.PlaytimeKeyBindings;
+import fr.julien.playtimetracker.forge.command.CommandPlaytime;
 import fr.julien.playtimetracker.forge.config.ConfigChangeHandler;
 import fr.julien.playtimetracker.forge.config.ForgeConfig;
 import fr.julien.playtimetracker.forge.event.PlaytimeClientHandler;
 import fr.julien.playtimetracker.forge.event.StatsGuiHandler;
 import net.minecraft.client.Minecraft;
+import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -71,6 +74,12 @@ public final class PlaytimeTrackerMod {
         MinecraftForge.EVENT_BUS.register(handler);
         MinecraftForge.EVENT_BUS.register(new StatsGuiHandler(tracker));
         MinecraftForge.EVENT_BUS.register(new ConfigChangeHandler(tracker));
+        MinecraftForge.EVENT_BUS.register(new PlaytimeKeyBindings(tracker, Minecraft.getMinecraft()));
+
+        // Client-side: the command never reaches the server, so it works everywhere and
+        // needs no permission.
+        ClientCommandHandler.instance.registerCommand(
+                new CommandPlaytime(tracker, Minecraft.getMinecraft()));
 
         // Minecraft has no reliable "game is closing" event in 1.12.2, and it can exit
         // through System.exit. A shutdown hook is the only thing that catches every path,

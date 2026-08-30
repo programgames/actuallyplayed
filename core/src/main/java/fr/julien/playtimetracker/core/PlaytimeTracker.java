@@ -5,6 +5,7 @@ import fr.julien.playtimetracker.core.engine.Clock;
 import fr.julien.playtimetracker.core.engine.PlaytimeEngine;
 import fr.julien.playtimetracker.core.engine.RetentionPolicy;
 import fr.julien.playtimetracker.core.engine.SessionSnapshot;
+import fr.julien.playtimetracker.core.model.PlayerPlaytime;
 import fr.julien.playtimetracker.core.model.PlaytimeData;
 import fr.julien.playtimetracker.core.model.ProvisionalSession;
 import fr.julien.playtimetracker.core.model.TargetKey;
@@ -117,6 +118,42 @@ public final class PlaytimeTracker {
         currentDisplayName = null;
         trySave();
         return finished;
+    }
+
+    /**
+     * Forgets everything recorded about the destination the player is currently on, and
+     * restarts the running session from zero.
+     * <p>
+     * The running session is discarded rather than recorded: a player asking to reset does
+     * not want the minutes they just spent typing the command to survive it. Other
+     * destinations are untouched — this deliberately cannot wipe everything, because a
+     * single command that erases months of history is a command someone will run by
+     * accident.
+     *
+     * @return the destination that was reset, or empty if the player is not in a world
+     */
+    public synchronized Optional<TargetKey> resetCurrentTarget() {
+        Optional<SessionSnapshot> snapshot = engine.snapshot();
+        if (!snapshot.isPresent()) {
+            return Optional.empty();
+        }
+
+        SessionSnapshot current = snapshot.get();
+        String playerUuid = current.getPlayerUuid();
+        TargetKey target = current.getTarget();
+        String displayName = currentDisplayName;
+
+        engine.endSession();
+        PlayerPlaytime player = data.find(playerUuid);
+        if (player != null) {
+            player.remove(target);
+        }
+        data.setInProgress(null);
+
+        engine.beginSession(playerUuid, target);
+        currentDisplayName = displayName;
+        trySave();
+        return Optional.of(target);
     }
 
     public synchronized void onActivity() {

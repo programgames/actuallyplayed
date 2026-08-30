@@ -216,6 +216,57 @@ public class PlaytimeTrackerTest {
         assertNotNull(repository.load().getInProgress());
     }
 
+    // --- resetting a destination ------------------------------------------------------
+
+    @Test
+    public void resetForgetsTheCurrentDestinationAndRestartsTheSession() throws IOException {
+        tracker.beginSession(PLAYER, SERVER, "Hypixel");
+        playActively(10);
+        tracker.endSession();
+
+        tracker.beginSession(PLAYER, SERVER, "Hypixel");
+        playActively(3);
+
+        assertEquals(SERVER, tracker.resetCurrentTarget().get());
+
+        assertEquals("the recorded history is gone", 0L,
+                tracker.getData().player(PLAYER).getTotalMillis());
+        assertTrue("and a fresh session is already running", tracker.isSessionActive());
+        assertEquals("which starts from zero", 0L, tracker.snapshot().get().getTotalMillis());
+        assertNull(repository.load().getInProgress());
+    }
+
+    @Test
+    public void resetDoesNotBankTheSessionItInterrupts() throws IOException {
+        tracker.beginSession(PLAYER, SERVER, "Hypixel");
+        playActively(10);
+
+        tracker.resetCurrentTarget();
+
+        assertEquals("the minutes spent before the reset must not survive it", 0L,
+                repository.load().player(PLAYER).getTotalMillis());
+    }
+
+    @Test
+    public void resetLeavesOtherDestinationsAlone() throws IOException {
+        TargetKey world = TargetKey.singleplayer("New World");
+        tracker.beginSession(PLAYER, world, "New World");
+        playActively(5);
+        tracker.endSession();
+
+        tracker.beginSession(PLAYER, SERVER, "Hypixel");
+        playActively(2);
+        tracker.resetCurrentTarget();
+
+        assertEquals("a reset must never reach beyond the destination the player is on",
+                5 * MINUTE, tracker.getData().player(PLAYER).find(world).getTotalActiveMillis());
+    }
+
+    @Test
+    public void resetIsHarmlessOutsideAWorld() {
+        assertFalse(tracker.resetCurrentTarget().isPresent());
+    }
+
     // --- resilience ------------------------------------------------------------------
 
     @Test

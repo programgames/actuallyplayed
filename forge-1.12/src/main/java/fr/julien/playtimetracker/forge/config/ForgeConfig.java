@@ -3,6 +3,7 @@ package fr.julien.playtimetracker.forge.config;
 import fr.julien.playtimetracker.core.config.PlaytimeConfig;
 import net.minecraftforge.common.config.ConfigElement;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.client.config.IConfigElement;
 
 import java.io.File;
@@ -43,36 +44,54 @@ public final class ForgeConfig {
      * Re-reads the file into a fresh {@link PlaytimeConfig}. Called again after an in-game
      * edit; the caller publishes the result, which is what makes the swap atomic.
      */
+    /**
+     * Reads one setting and tags it with a language key.
+     * <p>
+     * Without the key, Forge's config screen falls back to the raw property name and the
+     * English comment — so a French player got an English settings screen from a mod that
+     * ships a French translation. {@code GuiConfig} looks up {@code key} for the label and
+     * {@code key + ".tooltip"} for the hover text.
+     */
+    private static Property tagged(String name, String category, int defaultValue,
+                                   int min, int max, String comment) {
+        Property property = configuration.get(category, name, defaultValue, comment, min, max);
+        property.setLanguageKey("playtimetracker.config." + name);
+        return property;
+    }
+
     public static PlaytimeConfig read() {
-        int afkSeconds = configuration.getInt(
-                "afkThresholdSeconds", CATEGORY_TRACKING,
+        configuration.getCategory(CATEGORY_TRACKING)
+                .setLanguageKey("playtimetracker.config.category.tracking");
+        configuration.getCategory(CATEGORY_STORAGE)
+                .setLanguageKey("playtimetracker.config.category.storage");
+        configuration.getCategory(CATEGORY_DEBUG)
+                .setLanguageKey("playtimetracker.config.category.debug");
+        int afkSeconds = tagged("afkThresholdSeconds", CATEGORY_TRACKING,
                 (int) (PlaytimeConfig.DEFAULT_AFK_THRESHOLD_MILLIS / 1000L), 10, 3600,
                 "Inactivity, in seconds, after which the counter stops. The elapsed idle time is "
-                        + "then removed from the played total and moved to the AFK total.");
+                        + "then removed from the played total and moved to the AFK total.").getInt();
 
-        int minSessionSeconds = configuration.getInt(
-                "minSessionSeconds", CATEGORY_TRACKING,
+        int minSessionSeconds = tagged("minSessionSeconds", CATEGORY_TRACKING,
                 (int) (PlaytimeConfig.DEFAULT_MIN_SESSION_MILLIS / 1000L), 0, 3600,
                 "Sessions shorter than this are discarded entirely, so brief visits do not "
-                        + "clutter the list. Set to 0 to keep every session.");
+                        + "clutter the list. Set to 0 to keep every session.").getInt();
 
-        int autosaveSeconds = configuration.getInt(
-                "autosaveIntervalSeconds", CATEGORY_STORAGE,
+        int autosaveSeconds = tagged("autosaveIntervalSeconds", CATEGORY_STORAGE,
                 (int) (PlaytimeConfig.DEFAULT_AUTOSAVE_INTERVAL_MILLIS / 1000L), 10, 3600,
                 "How often the data file is written. This also bounds how much of an ongoing "
-                        + "session a crash can cost you.");
+                        + "session a crash can cost you.").getInt();
 
-        int retentionDays = configuration.getInt(
-                "retentionDays", CATEGORY_STORAGE,
+        int retentionDays = tagged("retentionDays", CATEGORY_STORAGE,
                 PlaytimeConfig.DEFAULT_RETENTION_DAYS, 1, 3650,
                 "How long individual sessions are kept in full detail. Older ones are merged "
-                        + "into monthly summaries; no playtime is ever lost, only the detail.");
+                        + "into monthly summaries; no playtime is ever lost, only the detail.").getInt();
 
-        debugLogging = configuration.getBoolean(
-                "debugLogging", CATEGORY_DEBUG, false,
+        Property debugProperty = configuration.get(CATEGORY_DEBUG, "debugLogging", false,
                 "Logs every switch between playing and AFK, plus session start and end. Off by "
                         + "default: the mod is meant to be silent. Turn it on to check that "
                         + "activity detection behaves as you expect.");
+        debugProperty.setLanguageKey("playtimetracker.config.debugLogging");
+        debugLogging = debugProperty.getBoolean();
 
         if (configuration.hasChanged()) {
             configuration.save();

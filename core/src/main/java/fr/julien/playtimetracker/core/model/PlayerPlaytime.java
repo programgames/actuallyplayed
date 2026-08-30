@@ -40,6 +40,15 @@ public final class PlayerPlaytime {
         return targets.get(key);
     }
 
+    /**
+     * Forgets everything recorded about one destination.
+     *
+     * @return {@code true} if there was anything to forget
+     */
+    public boolean remove(TargetKey key) {
+        return targets.remove(key) != null;
+    }
+
     public Collection<TrackedTarget> getTargets() {
         return Collections.unmodifiableCollection(targets.values());
     }
