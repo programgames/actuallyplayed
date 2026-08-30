@@ -11,6 +11,7 @@ separating **time actually played** from **time spent AFK**.
 | Minecraft | Loader |
 |---|---|
 | 1.12.2 | Forge 14.23.5.2847+ |
+| 1.16.5 | Forge 36.2.39+ · Fabric |
 | 1.20.1 | Forge 47.2.30+ · Fabric |
 | 1.21.1 | NeoForge 21.1+ · Fabric |
 
@@ -106,7 +107,7 @@ everything.
   restart.
 - **By file**: `.minecraft/config/actuallyplayed/actuallyplayed.cfg`
 
-**On 1.20 and later**, by file only:
+**On 1.16 and later**, by file only:
 `.minecraft/config/actuallyplayed/actuallyplayed.properties`, edited with the game closed. It
 is written with the defaults and an explanation of each setting the first time the mod runs.
 

@@ -80,6 +80,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - mc: '1.16.5'
+            loaders: 'Forge and Fabric'
+            # Built with Architectury Loom, and targeting Java 8. Gradle itself may run on 17.
+            jdk: '17'
           - mc: '1.20.1'
             loaders: 'Forge and Fabric'
             # Gradle itself may run on any JDK for this version; the toolchain handles the

@@ -11,12 +11,13 @@ changelog, and the per-version strings in `update.json`. Write it once here.
 
 ## [1.1.0] — unreleased
 
-Minecraft 1.20.1 and 1.21.1, and two fixes to activity detection that also reach 1.12.2.
+Minecraft 1.16.5, 1.20.1 and 1.21.1, and two fixes to activity detection that also reach
+1.12.2.
 
 ### Added
 
-- **Minecraft 1.20.1** on Forge and Fabric, and **1.21.1** on NeoForge and Fabric. Every jar
-  is self-contained: no library to install alongside it, on any loader.
+- **Minecraft 1.16.5** and **1.20.1** on Forge and Fabric, and **1.21.1** on NeoForge and
+  Fabric. Every jar is self-contained: no library to install alongside it, on any loader.
 - Your history moves with you. The data file has the same format on every version and every
   loader, so switching either one keeps your recorded time.
 
@@ -35,7 +36,7 @@ Minecraft 1.20.1 and 1.21.1, and two fixes to activity detection that also reach
 - The state no longer flickers between playing and AFK while the singleplayer pause menu is
   open. Accounting was never affected; only the reported state was unstable.
 
-### Notes for 1.20 and later
+### Notes for 1.16 and later
 
 - Settings live in `config/actuallyplayed/actuallyplayed.properties`, edited with the game
   closed. There is no settings screen: providing one on Fabric would mean requiring two more

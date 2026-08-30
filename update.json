@@ -3,6 +3,8 @@
   "promos": {
     "1.12.2-latest": "1.12.2-1.1.0",
     "1.12.2-recommended": "1.12.2-1.1.0",
+    "1.16.5-latest": "1.16.5-1.1.0",
+    "1.16.5-recommended": "1.16.5-1.1.0",
     "1.20.1-latest": "1.20.1-1.1.0",
     "1.20.1-recommended": "1.20.1-1.1.0",
     "1.21.1-latest": "1.21.1-1.1.0",
@@ -11,6 +13,9 @@
   "1.12.2": {
     "1.12.2-1.0.0": "First release.\nMeasures time spent on each server and world, telling real play time apart from AFK time.\nOpen it from Esc → Statistics, from /played, or from a key you assign in Options → Controls.",
     "1.12.2-1.1.0": "Adds Minecraft 1.20.1 (Forge, Fabric) and 1.21.1 (NeoForge, Fabric).\nActivity is now also read by polling the input devices each tick, which no longer misses a player whose input events another mod cancels.\nA brief focus steal by another application no longer splits your session.\nOn 1.20 and later the settings live in actuallyplayed.properties; there is no settings screen there."
+  },
+  "1.16.5": {
+    "1.16.5-1.1.0": "Adds Minecraft 1.20.1 (Forge, Fabric) and 1.21.1 (NeoForge, Fabric).\nActivity is now also read by polling the input devices each tick, which no longer misses a player whose input events another mod cancels.\nA brief focus steal by another application no longer splits your session.\nOn 1.20 and later the settings live in actuallyplayed.properties; there is no settings screen there."
   },
   "1.20.1": {
     "1.20.1-1.1.0": "Adds Minecraft 1.20.1 (Forge, Fabric) and 1.21.1 (NeoForge, Fabric).\nActivity is now also read by polling the input devices each tick, which no longer misses a player whose input events another mod cancels.\nA brief focus steal by another application no longer splits your session.\nOn 1.20 and later the settings live in actuallyplayed.properties; there is no settings screen there."

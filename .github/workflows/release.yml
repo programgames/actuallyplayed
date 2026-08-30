@@ -32,6 +32,10 @@ jobs:
             # ForgeGradle 2.3 and Gradle 4.10.3 do not run on any JDK newer than 8.
             jdk: '8'
             build: legacy
+          - mc: '1.16.5'
+            # Architectury Loom, targeting Java 8; Gradle itself may run on 17.
+            jdk: '17'
+            build: modern
           - mc: '1.20.1'
             jdk: '17'
             build: modern

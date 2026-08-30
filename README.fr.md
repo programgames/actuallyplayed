@@ -12,6 +12,7 @@ strictement **le temps réellement joué** du **temps AFK**.
 | Minecraft | Loader |
 |---|---|
 | 1.12.2 | Forge 14.23.5.2847+ |
+| 1.16.5 | Forge 36.2.39+ · Fabric |
 | 1.20.1 | Forge 47.2.30+ · Fabric |
 | 1.21.1 | NeoForge 21.1+ · Fabric |
 
@@ -108,7 +109,7 @@ fermé efface tout.
   immédiatement, sans redémarrage.
 - **Par fichier** : `.minecraft/config/actuallyplayed/actuallyplayed.cfg`
 
-**À partir de 1.20**, par fichier uniquement :
+**À partir de 1.16**, par fichier uniquement :
 `.minecraft/config/actuallyplayed/actuallyplayed.properties`, à éditer jeu fermé. Il est créé
 au premier lancement avec les valeurs par défaut et l'explication de chaque réglage.
 
