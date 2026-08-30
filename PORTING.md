@@ -234,8 +234,29 @@ ModDevGradle's two variants:
 - `common` would have to source its vanilla Minecraft from whichever of those is chosen, rather
   than from ModDevGradle.
 
-**Not attempted.** The measurement is worth keeping because it says the code is ready; what is
-missing is a build decision, and it is a larger one than "add a version".
+**Resolved with Architectury Loom.** It is the build *tool*, not the runtime *library* —
+Architectury API stays ruled out by §3.3 and players still install one jar. §3.3 already listed
+the Loom as an acceptable fallback, and this is where it earns its place: it handles 1.16.5 with
+official Mojang mappings on Gradle 8.
+
+Two things had to change to let it in:
+
+- **The two Looms cannot share a classpath.** Architectury Loom is a fork of Fabric Loom and
+  ships the same plugin class, so declaring both fails with
+  `'net.fabricmc.loom.LoomGradlePlugin' is neither a plugin or a rule source`. A `plugins` block
+  cannot be conditional, so the loom and ModDevGradle now come in through a `buildscript` block,
+  which can, selected by `build_toolchain` in the version descriptor.
+- **Compiling found more than the first probe reported**, which had silently used a different
+  mapping set. `getYRot`, `getXRot`, `getInventory` and `getProfileId` are getters from 1.17 and
+  fields or absent before; each is now a one-line class per version beside `ScreenBackground`.
+  1.16 has no `isMiddlePressed`, dropped rather than worked around because the middle button's
+  usual effect already shows in the selected hotbar slot.
+
+**And 1.16.5 targets Java 8**, so `common/src/main` lost `var`, `List.of` and
+`Optional.isEmpty`. It is Java 8 clean now, as `core` has always been; the per-version
+directories keep their own version's language level. That is the real constraint the port takes
+on by supporting 1.16 — worth naming, because it applies to every line written in `common` from
+here on.
 
 ### 3.10 Target layout
 
@@ -484,7 +505,8 @@ falls out of sharing `core`, and it is worth not breaking.
       its entry point was covered by the 1.20.1 Fabric run and the 1.21.1 NeoForge one
 - [ ] Latest 1.21.x — expect the 1.21.5 render-pipeline break to hit the draw loop, and
       nothing else
-- [ ] 1.16.5 — **blocked on the toolchain**, see below
+- [x] 1.16.5 Forge — jar builds; not yet run in game
+- [ ] 1.16.5 Fabric — the Fabric screen API may not exist on 1.16, unverified
 - [ ] 1.19.2 / 1.18.2 as filler
 - [ ] Release workflow extended to build and attach the whole matrix
 - [x] CI builds every loader of every modern version, as a matrix beside the 1.12 job

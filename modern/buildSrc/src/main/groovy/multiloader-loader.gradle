@@ -10,6 +10,14 @@ plugins {
     id 'multiloader-common'
 }
 
+// Forge renamed its event classes between 1.16 and 1.17 (GuiScreenEvent -> ScreenEvent), so a
+// loader module may need its own per-version sources, the same way `common` does. The directory
+// is optional: a module with nothing version-specific simply has none.
+def versionSources = file("src/${version_source_set}/java")
+if (versionSources.isDirectory()) {
+    sourceSets.main.java.srcDir versionSources
+}
+
 configurations {
     commonJava {
         canBeResolved = true
