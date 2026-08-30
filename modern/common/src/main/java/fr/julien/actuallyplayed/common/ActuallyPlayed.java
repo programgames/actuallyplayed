@@ -1,5 +1,6 @@
 package fr.julien.actuallyplayed.common;
 
+import fr.julien.actuallyplayed.common.config.PlaytimeSettings;
 import fr.julien.actuallyplayed.core.PlaytimeTracker;
 import fr.julien.actuallyplayed.core.config.PlaytimeConfig;
 import fr.julien.actuallyplayed.core.engine.SystemClock;
@@ -36,17 +37,18 @@ public final class ActuallyPlayed {
     }
 
     /**
-     * @param configDir    the directory the data file and settings live in
-     * @param config       the settings to start with
-     * @param debugLogging whether to log active/AFK transitions
+     * @param configDir the directory the data file and the settings live in
      * @return {@code false} if the stored data could not be opened, in which case the mod stays
      *         loaded but records nothing — far better than overwriting a file we failed to
      *         understand
      */
-    public static synchronized boolean start(Path configDir, PlaytimeConfig config, boolean debugLogging) {
+    public static synchronized boolean start(Path configDir) {
         if (client != null) {
             return true;
         }
+
+        PlaytimeSettings settings = PlaytimeSettings.load(configDir, LOGGER);
+        PlaytimeConfig config = settings.getConfig();
 
         JsonPlaytimeStore store = new JsonPlaytimeStore(configDir.resolve("playtime.json"));
         PlaytimeTracker tracker =
@@ -63,7 +65,7 @@ public final class ActuallyPlayed {
             return false;
         }
 
-        client = new PlaytimeClient(tracker, Minecraft.getInstance(), LOGGER, debugLogging);
+        client = new PlaytimeClient(tracker, Minecraft.getInstance(), LOGGER, settings.isDebugLogging());
 
         // Minecraft can exit through System.exit, and no loader event catches every path. A
         // shutdown hook does, so the session in progress is closed and written rather than

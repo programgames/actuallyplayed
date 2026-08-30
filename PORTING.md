@@ -295,7 +295,7 @@ that keeps 1.12 working.
 - [x] A guard that fails the build on a loader import inside `common/` — `checkNoLoaderImports`
 - [x] **1.20.1 Forge** builds a self-contained jar
 - [x] **1.20.1 Fabric** builds from the same `common`, with no cross-loader runtime library
-- [ ] Read the settings from a config file on both loaders — they run on defaults today
+- [x] Read the settings from a config file, shared by both loaders
 - [ ] Re-run the §8 manual list in game on 1.20.1 — none of it is covered by automated tests
 - [ ] Stonecutter, deferred to the second Minecraft version (§3.6)
 
@@ -339,10 +339,11 @@ Roughly 120 lines per loader.
 
 ## 8. Open questions
 
-- **Config screen on Fabric.** Cloth Config is the usual answer but is another required
-  dependency — the same objection raised against Architectury API in §3.3. Falling back to a
-  hand-editable file with no in-game screen may be the better trade on Fabric. Decide before
-  phase 3.
+- ~~**Config screen on Fabric.**~~ **Settled 2026-08-30: one commented file, read by
+  `common`, on every loader.** Cloth Config and ModMenu would be a required dependency, which
+  is the same toll §3.3 refused for Architectury API, and writing a screen per loader would
+  mean maintaining two of them for five settings. The cost is worth naming rather than hiding:
+  a player who could click a slider on 1.12 now edits a file.
 - **Jar naming across the matrix.** `CLAUDE.md` §12 specifies
   `MCVERSION-MAJOR.MINOR.PATCH`, which sorts correctly per version. Confirm how the loader is
   distinguished — `actuallyplayed-1.21.1-neoforge-1.1.0.jar` or similar.

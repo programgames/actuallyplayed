@@ -2,7 +2,6 @@ package fr.julien.actuallyplayed.forge;
 
 import fr.julien.actuallyplayed.common.ActuallyPlayed;
 import fr.julien.actuallyplayed.common.client.PlaytimeStatsScreen;
-import fr.julien.actuallyplayed.core.config.PlaytimeConfig;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.achievement.StatsScreen;
 import net.minecraft.network.chat.Component;
@@ -44,10 +43,7 @@ public final class ActuallyPlayedForge {
             throw new IllegalStateException("Could not create " + configDir, e);
         }
 
-        // TODO(phase 2): read the settings from a Forge config file, as the 1.12 build does.
-        // Defaults keep the milestone honest: the mod records correctly, it is simply not yet
-        // configurable here.
-        if (ActuallyPlayed.start(configDir, PlaytimeConfig.defaults(), false)) {
+        if (ActuallyPlayed.start(configDir)) {
             MinecraftForge.EVENT_BUS.register(this);
         }
     }

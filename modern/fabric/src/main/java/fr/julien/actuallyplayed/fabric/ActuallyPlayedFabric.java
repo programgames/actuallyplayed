@@ -2,7 +2,6 @@ package fr.julien.actuallyplayed.fabric;
 
 import fr.julien.actuallyplayed.common.ActuallyPlayed;
 import fr.julien.actuallyplayed.common.client.PlaytimeStatsScreen;
-import fr.julien.actuallyplayed.core.config.PlaytimeConfig;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -36,8 +35,7 @@ public final class ActuallyPlayedFabric implements ClientModInitializer {
             throw new IllegalStateException("Could not create " + configDir, e);
         }
 
-        // TODO(phase 2): read the settings from a config file, as the 1.12 build does.
-        if (!ActuallyPlayed.start(configDir, PlaytimeConfig.defaults(), false)) {
+        if (!ActuallyPlayed.start(configDir)) {
             return;
         }
 
