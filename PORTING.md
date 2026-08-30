@@ -207,7 +207,37 @@ targets, 1.7.10 through 1.21 — verified by compiling `common` against 1.16.5, 
 The whole 1.16.5 logging problem therefore disappears by picking the library Minecraft has
 always shipped, instead of the newer one it happens to prefer today.
 
-### 3.9 Target layout
+### 3.9 1.16.5 needs a third toolchain — measured, then blocked
+
+The Java side is nearly free. Compiling the whole adapter against 1.16.5 leaves **only the draw
+loop**: `GuiGraphics` does not exist before 1.20, where 1.16 passes a `PoseStack` and draws
+through static helpers. Target resolution, input polling, settings and all of `core` compile
+unchanged. The logging difference that the same measurement turned up was removed outright by
+§3.8.
+
+**What blocks it is the build, not the code.** `common` gets its loader-free Minecraft from
+ModDevGradle, and its runtime refuses anything older than 1.17:
+
+```
+NFRT currently does not support MCP versions that did not make use of
+official Mojang mappings (pre 1.17).
+```
+
+Mojang published mappings from 1.14.4, but Minecraft's own build only adopted them at 1.17, and
+NeoForm follows the latter. So 1.16.5 needs a **third toolchain** in `modern/`, on top of
+ModDevGradle's two variants:
+
+- **Fabric Loom handles 1.16.5 fine** with `officialMojangMappings()` — proved by the probe
+  that produced the measurement above. Fabric alone would therefore be cheap.
+- **Forge 1.16.5 needs ForgeGradle 5**, whose support for official mappings on that version has
+  not been checked here.
+- `common` would have to source its vanilla Minecraft from whichever of those is chosen, rather
+  than from ModDevGradle.
+
+**Not attempted.** The measurement is worth keeping because it says the code is ready; what is
+missing is a build decision, and it is a larger one than "add a version".
+
+### 3.10 Target layout
 
 ```
 actually-played/
@@ -220,7 +250,7 @@ actually-played/
    └─ fabric/                entry point + loader glue
 ```
 
-### 3.10 Toolchains on this machine
+### 3.11 Toolchains on this machine
 
 | | Installed | Needed by |
 |---|---|---|
@@ -454,7 +484,7 @@ falls out of sharing `core`, and it is worth not breaking.
       its entry point was covered by the 1.20.1 Fabric run and the 1.21.1 NeoForge one
 - [ ] Latest 1.21.x — expect the 1.21.5 render-pipeline break to hit the draw loop, and
       nothing else
-- [ ] 1.16.5 Forge
+- [ ] 1.16.5 — **blocked on the toolchain**, see below
 - [ ] 1.19.2 / 1.18.2 as filler
 - [ ] Release workflow extended to build and attach the whole matrix
 - [x] CI builds every loader of every modern version, as a matrix beside the 1.12 job
