@@ -305,7 +305,9 @@ each: start the adapter, feed it the client tick, graft the button onto the vani
 screen. `core` needed no change of any kind, and `common` compiled against 1.20.1 on the first
 attempt.
 
-Neither jar has been launched in game yet. Building is not running.
+The Forge jar **loads on Minecraft 1.20.1** — `Actually Played active (client-side only).`,
+no exception, clean exit (2026-08-30). Loading is not yet recording: the §8 manual list has
+not been re-run there.
 
 ## 6. Phase 3 — fan out
 
