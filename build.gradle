@@ -160,6 +160,99 @@ task checkLangParity {
     }
 }
 
+// Translations for Minecraft 1.13 and later, generated from the same `.lang` sources.
+//
+// The game switched its language files from `key=value` to JSON in 1.13. Maintaining 27
+// locales twice over, by hand, across every version this mod targets is not something that
+// stays correct for long -- so `.lang` remains the single source of truth, `checkLangParity`
+// keeps guarding it, and the JSON is produced from it at build time. A port consumes the
+// output directory; nothing is committed.
+//
+// See PORTING.md section 4.3. Like `checkLangParity`, this lives in the ROOT project because
+// it only reads and writes text files, and its own source is deliberately pure ASCII: Gradle
+// 4 reads build scripts with the platform default encoding, so a literal non-ASCII character
+// here is the same mojibake trap as in a Java source file.
+task generateLangJson {
+    description = 'Generates 1.13+ JSON translations from the .lang sources.'
+    group = 'build'
+
+    def langDir = file('forge-1.12/src/main/resources/assets/actuallyplayed/lang')
+    def outputDir = file("${buildDir}/generated-lang/assets/actuallyplayed/lang")
+
+    inputs.files fileTree(dir: langDir, include: '*.lang')
+    outputs.dir outputDir
+
+    // Never translate from a source the parity check has not cleared: a missing key would be
+    // baked into every generated file at once.
+    dependsOn checkLangParity
+
+    doLast {
+        // JSON has no `#` comments and no bare newlines inside a string, so what the .lang
+        // format lets through has to be escaped rather than copied. Accented characters are
+        // not among them: the file is UTF-8 and the game reads it as UTF-8, so they are
+        // written as themselves.
+        def backslash = '\\'
+        def quote = '"'
+        def escape = { String value ->
+            // Backslash first. Escaping it after the quotes would double the backslashes the
+            // quotes had just introduced.
+            def escaped = value
+                    .replace(backslash, backslash + backslash)
+                    .replace(quote, backslash + quote)
+                    .replace('\n', backslash + 'n')
+                    .replace('\r', backslash + 'r')
+                    .replace('\t', backslash + 't')
+
+            // Anything else below U+0020 has no literal form in JSON and would leave the file
+            // unparsable -- which costs the entire locale, not merely the line it sits on. No
+            // translation has a reason to hold one, so say so rather than guess.
+            escaped.each { String character ->
+                int code = character.charAt(0) as int
+                if (code < 0x20) {
+                    throw new GradleException('A translation holds a control character (U+' +
+                            String.format('%04X', code) + ') that JSON cannot represent: ' + value)
+                }
+            }
+            return escaped
+        }
+
+        outputDir.deleteDir()
+        outputDir.mkdirs()
+
+        def generated = 0
+        fileTree(dir: langDir, include: '*.lang').sort { it.name }.each { File source ->
+            def entries = [:]
+            source.getText('UTF-8').readLines().each { line ->
+                def trimmed = line.trim()
+                if (trimmed.isEmpty() || trimmed.startsWith('#')) {
+                    return
+                }
+                def separator = line.indexOf('=')
+                if (separator < 0) {
+                    return
+                }
+                // The key is trimmed, the value is not: a translation may legitimately end on
+                // a space, and the 1.12 parser keeps it. Dropping it here would make the two
+                // formats disagree over something invisible.
+                entries[line.substring(0, separator).trim()] = line.substring(separator + 1)
+            }
+
+            def body = entries.collect { key, value ->
+                "  \"${escape(key)}\": \"${escape(value)}\""
+            }.join(',' + '\n')
+
+            def target = new File(outputDir, source.name.replace('.lang', '.json'))
+            // Written as UTF-8 with no BOM. A BOM would make the file unparsable as JSON,
+            // which -- unlike the .lang case, where it merely swallowed the first key -- costs
+            // the whole locale.
+            target.setText('{' + '\n' + body + '\n' + '}' + '\n', 'UTF-8')
+            generated++
+        }
+
+        logger.lifecycle("Translations: generated ${generated} JSON locales into ${outputDir}.")
+    }
+}
+
 // Guard rail: ForgeGradle 2.3 and Gradle 4.x only run under JDK 8. Failing here with a
 // clear message beats an inscrutable stack trace halfway through setupDecompWorkspace.
 def javaVersion = System.getProperty('java.version')
