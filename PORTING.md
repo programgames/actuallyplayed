@@ -509,8 +509,20 @@ falls out of sharing `core`, and it is worth not breaking.
       save folder, the pause menu switches cleanly, and the stats screen renders. That last one
       is what mattered: it exercises the `PoseStack` screen, written without ever being run, and
       the four per-version accessor classes. No draw failure in the log.
-- [x] 1.16.5 Fabric — jar builds; `fabric-screen-api-v1` does exist on 1.16, so the concern
-      raised about it was unfounded. Not run in game.
+- [x] **1.16.5 Fabric — verified in game** (2026-08-30): the mod loads, the session opens, AFK
+      fires at the threshold to the second, and the button is grafted onto the statistics
+      screen. `fabric-screen-api-v1` does exist on 1.16, so the concern raised about it was
+      unfounded — but the run found a worse problem instead, below.
+
+> ⚠️ **Fabric API changed its mod id.** It was published as `fabric` until roughly 1.19 and as
+> `fabric-api` after. `fabric.mod.json` asked for `fabric-api` on every version, so the 1.16.5
+> jar refused to launch with *"requires any version of fabric-api, which is missing"* — on a
+> machine where Fabric API was installed and on the classpath. The id is now declared per
+> version, beside the other version differences.
+>
+> Nothing caught this before the game did: the module compiled, the jar was well formed, and
+> the dependency resolved at build time. It is the clearest argument in this document for
+> running every jar at least once.
 - [ ] 1.19.2 / 1.18.2 as filler
 - [ ] Release workflow extended to build and attach the whole matrix
 - [x] CI builds every loader of every modern version, as a matrix beside the 1.12 job
