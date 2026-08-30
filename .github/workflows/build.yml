@@ -7,7 +7,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  # Two builds, deliberately separate and run in parallel. They cannot be one job: the 1.12
+  # build enforces JDK 8 and Gradle 4.10.3 for ForgeGradle 2.3, while the modern build needs
+  # Gradle 8 and JDK 17. See PORTING.md section 3.5.
+
+  legacy-1-12:
+    name: Minecraft 1.12.2 (Forge)
     runs-on: ubuntu-latest
 
     steps:
@@ -62,3 +67,48 @@ jobs:
         with:
           name: test-reports
           path: core/build/reports/tests/
+
+  modern:
+    name: Minecraft 1.20.1 (Forge and Fabric)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: modern
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Its own cache key: this build shares no dependency with the 1.12 one, and mixing them
+      # would evict one on every change to the other.
+      - name: Cache Gradle and the Minecraft artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.neoformruntime
+          key: ${{ runner.os }}-modern-${{ hashFiles('modern/**/*.gradle', 'modern/gradle.properties', 'modern/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-modern-
+
+      # Fails in seconds if a loader import found its way into the shared module, rather than
+      # after Minecraft has been decompiled.
+      - name: Check that common stays loader-neutral
+        run: ./gradlew :common:checkNoLoaderImports --no-daemon --stacktrace
+
+      - name: Build both loaders
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Upload the jars
+        uses: actions/upload-artifact@v7
+        with:
+          name: actuallyplayed-1.20.1
+          path: |
+            modern/forge/build/libs/*.jar
+            modern/fabric/build/libs/*.jar
+          if-no-files-found: error

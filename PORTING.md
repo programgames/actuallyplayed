@@ -318,6 +318,7 @@ not been re-run there.
 - [ ] 1.16.5 Forge
 - [ ] 1.19.2 / 1.18.2 as filler
 - [ ] Release workflow extended to build and attach the whole matrix
+- [x] CI builds both loaders on 1.20.1, in a job of its own beside the 1.12 one
 
 ---
 
