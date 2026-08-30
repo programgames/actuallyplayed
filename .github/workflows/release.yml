@@ -1,69 +1,187 @@
 name: Release
 
-# Tag the commit with the exact version the build produces, e.g. 1.12.2-1.0.0,
-# and push the tag. Later Minecraft versions slot in as 1.20.1-1.0.0 with no change here.
+# One tag per release, carrying the mod version alone: 1.1.0, not 1.12.2-1.1.0.
+#
+# Until the port there was one Minecraft version, so the tag could name it and match the jar
+# exactly. With three, no single tag can match five jars, and that was the whole justification
+# for putting the Minecraft version in the tag. A release is now "Actually Played 1.1.0" and
+# carries a jar for every supported version and loader. The jars themselves still report
+# "<minecraft>-<mod>", which is what Forge's update checker compares.
 on:
   push:
-    tags: ['*-[0-9]+.[0-9]+.[0-9]+']
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  # Each Minecraft version builds on its own, for the same reason the Build workflow splits
+  # them: they need different Gradle versions and different JDKs, and one cannot run the other.
+  build:
+    name: Build ${{ matrix.mc }}
     runs-on: ubuntu-latest
+
+    strategy:
+      # A release must be all or nothing. Stopping the other jobs the moment one fails avoids
+      # publishing a draft that is quietly missing a version.
+      fail-fast: true
+      matrix:
+        include:
+          - mc: '1.12.2'
+            # ForgeGradle 2.3 and Gradle 4.10.3 do not run on any JDK newer than 8.
+            jdk: '8'
+            build: legacy
+          - mc: '1.20.1'
+            jdk: '17'
+            build: modern
+          - mc: '1.21.1'
+            # Loom refuses to set up Minecraft 1.21.1 unless Gradle itself runs on JDK 21 --
+            # a toolchain declaration is not enough. See PORTING.md section 3.6.
+            jdk: '21'
+            build: modern
 
     steps:
       - uses: actions/checkout@v7
 
-      # ForgeGradle 2.3 and Gradle 4.10.3 do not run on any JDK newer than 8.
-      - name: Set up JDK 8
+      - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '8'
+          java-version: ${{ matrix.jdk }}
 
-      - name: Cache Gradle and ForgeGradle
+      - name: Cache Gradle
         uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
             ~/.gradle/minecraft
-          key: ${{ runner.os }}-forge-${{ hashFiles('**/*.gradle', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-forge-
+            ~/.neoformruntime
+          key: ${{ runner.os }}-release-${{ matrix.mc }}-${{ hashFiles('**/*.gradle', '**/gradle.properties', 'modern/versions/*.properties') }}
+          restore-keys: ${{ runner.os }}-release-${{ matrix.mc }}-
 
       # The version lives in gradle.properties and the tag is typed by hand, so the two will
-      # drift eventually. A release with a mismatched name is painful to unpick once files
-      # are published, so fail here instead.
+      # drift eventually. A release with a mismatched name is painful to unpick once files are
+      # published, so fail here instead. Both builds are checked: they must agree, or the jars
+      # in one release would report different mod versions.
       - name: Check the tag matches the version being built
         run: |
-          BUILT="$(grep '^mcVersion=' gradle.properties | cut -d= -f2)-$(grep '^modVersion=' gradle.properties | cut -d= -f2)"
-          if [ "$BUILT" != "${GITHUB_REF_NAME}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match the built version ${BUILT}."
-            echo "Update modVersion in gradle.properties, or retag."
+          LEGACY="$(grep '^modVersion=' gradle.properties | cut -d= -f2)"
+          MODERN="$(grep '^mod_version=' modern/gradle.properties | cut -d= -f2)"
+          if [ "$LEGACY" != "$MODERN" ]; then
+            echo "gradle.properties says $LEGACY, modern/gradle.properties says $MODERN."
+            echo "One mod version describes the mod, whatever Minecraft version it is built for."
             exit 1
           fi
-          echo "Releasing ${BUILT}"
+          if [ "$LEGACY" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match the built version ${LEGACY}."
+            echo "Update modVersion and mod_version, or retag."
+            exit 1
+          fi
+          echo "Releasing ${LEGACY} for Minecraft ${{ matrix.mc }}"
+
+      # update.json drives the "update available" marker, and its versions must be the exact
+      # strings the mod reports. A missing entry means the checker says "up to date" forever,
+      # which is silent and easy to ship.
+      # Parsed rather than grepped, so a malformed file fails here instead of silently
+      # disabling the checker for every player.
+      - name: Check update.json knows this version
+        run: |
+          python3 - <<'CHECK'
+          import json, os, sys
+
+          mc = "${{ matrix.mc }}"
+          expected = mc + "-" + os.environ["GITHUB_REF_NAME"]
+
+          with open("update.json", encoding="utf-8") as handle:
+              document = json.load(handle)
+
+          problems = []
+          if document.get("promos", {}).get(mc + "-latest") != expected:
+              problems.append(f"promos['{mc}-latest'] should be '{expected}'")
+          if document.get("promos", {}).get(mc + "-recommended") != expected:
+              problems.append(f"promos['{mc}-recommended'] should be '{expected}'")
+          if expected not in document.get(mc, {}):
+              problems.append(f"the '{mc}' block has no changelog entry for '{expected}'")
+
+          if problems:
+              print("update.json drives the 'update available' marker, and a missing entry")
+              print("makes the checker report 'up to date' forever. Fix:")
+              for problem in problems:
+                  print("  -", problem)
+              sys.exit(1)
+
+          print(f"update.json lists {expected}")
+          CHECK
 
       - name: Test the engine
+        if: matrix.build == 'legacy'
         run: ./gradlew :core:check --no-daemon --stacktrace
 
+      - name: Check the translations
+        if: matrix.build == 'legacy'
+        run: ./gradlew checkLangParity --no-daemon --stacktrace
+
       - name: Set up the Forge workspace
+        if: matrix.build == 'legacy'
         run: ./gradlew setupCiWorkspace --no-daemon
 
-      - name: Build the mod
+      - name: Build 1.12.2
+        if: matrix.build == 'legacy'
         run: ./gradlew build --no-daemon --stacktrace
 
-      # The sources jar is deliberately excluded: publishing one as a release artifact
-      # invites confusion about which file to install.
+      - name: Build ${{ matrix.mc }}
+        if: matrix.build == 'modern'
+        working-directory: modern
+        run: ./gradlew -Pmc=${{ matrix.mc }} build --no-daemon --stacktrace
+
+      # The sources jars are deliberately excluded: publishing one as a release artifact invites
+      # confusion about which file to install. So is common, which is not a mod anyone installs.
+      - name: Collect the jars
+        run: |
+          mkdir -p release
+          if [ "${{ matrix.build }}" = "legacy" ]; then
+            cp forge-1.12/build/libs/actuallyplayed-*[0-9].jar release/
+          else
+            cp modern/forge/build/libs/actuallyplayed-forge-*[0-9].jar release/ 2>/dev/null || true
+            cp modern/neoforge/build/libs/actuallyplayed-neoforge-*[0-9].jar release/ 2>/dev/null || true
+            cp modern/fabric/build/libs/actuallyplayed-fabric-*[0-9].jar release/ 2>/dev/null || true
+          fi
+          ls -l release/
+          test -n "$(ls -A release/)"
+
+      - name: Upload the jars for the release job
+        uses: actions/upload-artifact@v7
+        with:
+          name: jars-${{ matrix.mc }}
+          path: release/*.jar
+          if-no-files-found: error
+
+  publish:
+    name: Publish the draft release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download every version's jars
+        uses: actions/download-artifact@v5
+        with:
+          pattern: jars-*
+          merge-multiple: true
+          path: release
+
+      - name: List what is being published
+        run: ls -l release/
+
+      # Draft on purpose: publishing is a decision, not a side effect of pushing a tag.
       - name: Publish the GitHub release
         uses: softprops/action-gh-release@v2
         with:
           name: Actually Played ${{ github.ref_name }}
           body_path: CHANGELOG.md
           draft: true
-          files: |
-            forge-1.12/build/libs/actuallyplayed-*[0-9].jar
+          files: release/*.jar
           fail_on_unmatched_files: true

@@ -13,6 +13,10 @@ description='''${description}'''
 # server that does not have it must never be blocked. This is the 1.20 spelling of what 1.12
 # expressed as acceptableRemoteVersions="*".
 displayTest="IGNORE_ALL_VERSION"
+# Drives Forge/NeoForge's "update available" marker. The versions inside must be the
+# exact strings this mod reports, prefix included -- see CLAUDE.md section 12.
+updateJSONURL="https://raw.githubusercontent.com/programgames/actuallyplayed/main/update.json"
+
 
 [[dependencies.${mod_id}]]
     modId="forge"

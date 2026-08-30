@@ -14,4 +14,9 @@ allprojects {
         ext.set(key.toString(), value.toString())
     }
     ext.set('mcVersion', gradle.mcVersion)
+
+    // "1.20.1-1.1.0", not "1.1.0". Forge compares reported versions with Maven's
+    // ComparableVersion, so a bare "1.1.0" sorts BELOW any "1.12.2-x" and the update checker
+    // would report "up to date" forever. See CLAUDE.md section 12.
+    version = "${gradle.mcVersion}-${mod_version}"
 }

@@ -561,8 +561,14 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
   Java API and touches no world data. A `MAJOR` bump is reserved for a `playtime.json`
   schema break that loses history. When a 1.20 port lands, `1.20.1-1.2.0` slots in beside
   `1.12.2-1.2.0` and sorts correctly in every launcher.
-- **Git tags use the full version** (`1.12.2-1.0.0`, never `v1.0.0`) so the tag matches the
-  jar name exactly and the release workflow can check one against the other.
+- **A git tag carries the mod version alone** (`1.1.0`), and one tag builds every supported
+  Minecraft version into a single GitHub release. **Revised 2026-08-30**: the tag used to carry
+  the full version (`1.12.2-1.0.0`) so it would match the jar name exactly, and with one
+  Minecraft version that worked. With three, no single tag can match five jars, so the rule
+  lost its premise. The release workflow checks the tag against `modVersion` in
+  `gradle.properties` **and** `mod_version` in `modern/gradle.properties`, which must agree —
+  one number describes the mod, whatever it is built for. The jars still report
+  `MCVERSION-MODVERSION`, which is what the update checker compares.
 - **`update.json` at the repo root** drives Forge's "update available" marker. Two traps
   live here:
   - The `updateUrl` field of `mcmod.info` is **dead metadata** — FML only ever reads the
@@ -570,14 +576,22 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
   - The versions inside must be the exact strings the mod reports, prefix included
     (`1.12.2-1.0.0`). Forge compares them with Maven's `ComparableVersion`, so a bare
     `1.0.0` would sort below any `1.12.2-x` and the checker would report "up to date"
+    forever. **This was live in the modern build for a while**: `modern/gradle.properties`
+    set `version=1.1.0`, so those jars reported a bare `1.1.0`. Fixed by assembling
+    `${minecraft_version}-${mod_version}` in `modern/build.gradle`.
+  - **Each Minecraft version needs its own block and its own `promos` pair.** The release
+    workflow parses `update.json` and fails if the version being released is missing from
+    either, because a missing entry is silent: the checker simply reports "up to date"
     forever.
   - **The URL points at `raw.githubusercontent.com`, so the repository must be public for
     the check to work.** While it is private, Forge silently reports `FAILED`.
 - **`CHANGELOG.md` feeds three consumers**: the GitHub release body, the CurseForge file
   changelog, and the per-version strings in `update.json`. Write it once there.
-- **`.github/workflows/release.yml`** fires on a version tag, verifies the tag matches
-  `gradle.properties`, builds, and opens a **draft** GitHub release with the jar attached.
-  Draft on purpose: publishing is a decision, not a side effect of pushing a tag.
+- **`.github/workflows/release.yml`** fires on a version tag, builds **every Minecraft version
+  in parallel** — each on its own JDK, since 1.12.2 needs 8, 1.20.1 needs 17 and 1.21.1 needs
+  Gradle itself on 21 — then gathers the jars into one **draft** GitHub release. Draft on
+  purpose: publishing is a decision, not a side effect of pushing a tag. `fail-fast` is on:
+  a release missing a version quietly is worse than no release.
 - **`gradlew clean` fails while Minecraft is running** — the running game holds
   `core/build/libs/core-*.jar` open. Close the game first. Not a build defect.
 

@@ -1,12 +1,47 @@
 # Changelog
 
 All notable changes to this project are documented here.
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
-uses `MCVERSION-MAJOR.MINOR.PATCH` versioning: `1.12.2-1.0.0` is version 1.0.0 built for
-Minecraft 1.12.2.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). One mod version
+covers every Minecraft version it is built for: **1.1.0** is released as one set of jars, and
+each jar reports `MCVERSION-MODVERSION` (`1.20.1-1.1.0`) because that is what Forge's update
+checker compares.
 
 This file feeds three places at once — the GitHub release notes, the CurseForge file
 changelog, and the per-version strings in `update.json`. Write it once here.
+
+## [1.1.0] — unreleased
+
+Minecraft 1.20.1 and 1.21.1, and two fixes to activity detection that also reach 1.12.2.
+
+### Added
+
+- **Minecraft 1.20.1** on Forge and Fabric, and **1.21.1** on NeoForge and Fabric. Every jar
+  is self-contained: no library to install alongside it, on any loader.
+- Your history moves with you. The data file has the same format on every version and every
+  loader, so switching either one keeps your recorded time.
+
+### Changed
+
+- Activity is now also read by polling the input devices on every client tick, alongside the
+  existing events. A state cannot be cancelled by another mod, so a player using a controller
+  mod or an inventory-tweak mod is no longer recorded as AFK while actively playing.
+- A focus loss is held for 1.5 seconds before it counts. Other applications steal focus for a
+  fraction of a second and hand it straight back — launchers, chat overlays, notification
+  popups — and each steal used to split the session and charge AFK time to a player sitting at
+  their keyboard. The pause menu is exempt and still takes effect at once.
+
+### Fixed
+
+- The state no longer flickers between playing and AFK while the singleplayer pause menu is
+  open. Accounting was never affected; only the reported state was unstable.
+
+### Notes for 1.20 and later
+
+- Settings live in `config/actuallyplayed/actuallyplayed.properties`, edited with the game
+  closed. There is no settings screen: providing one on Fabric would mean requiring two more
+  mods to change five values.
+- `/played` and the key binding are 1.12.2 only. The statistics screen is reachable from
+  Esc → Statistics everywhere.
 
 ## [1.12.2-1.0.0] — unreleased
 
