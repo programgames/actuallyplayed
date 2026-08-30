@@ -349,10 +349,11 @@ Forge integration cannot be covered by automated tests. Checked during a real se
       `Recovered 11 minutes of play from a session the last run did not close.`
       `inProgress` cleared, session moved into `sessions` with the exact values of the last
       autosave. Loss: the autosave interval, nothing more.
-- [ ] **Joining a real server** → key `server:host:port`, label = the name from the server
-      list. **Still unverified.**
-- [ ] The extra dim layer that hides the crosshair behind the stats screen — compiled but not
-      yet seen in game.
+- [x] **Joining a real server** → key `server:host:port`, label taken from the server list
+      (2026-08-30)
+- [x] The extra dim layer hides the crosshair and hotbar behind the stats screen (2026-08-30)
+
+Every item on this list is now verified in game.
 
 Realms is absent from this list on purpose: not tracking it is a deliberate choice (§2.4).
 
