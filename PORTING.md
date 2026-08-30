@@ -325,6 +325,29 @@ Threshold lowered to 60 s, as for the 1.12 runs.
       matches `end - start` to two milliseconds, which is the closing tick.
 - [x] **The stats screen renders correctly**, with no draw failure anywhere in the log.
 
+### Verified in game on 1.20.1 Fabric (2026-08-30)
+
+Only what is genuinely Fabric-specific was re-run: everything else goes through `common` and
+`core`, which the Forge session had just exercised. Three things had never executed before
+this run, and all three work.
+
+- [x] **The entry point runs and the tick reaches the adapter.** A session opens on the save
+      folder, and transitions appear — which they could not do if
+      `ClientTickEvents.END_CLIENT_TICK` were not firing.
+- [x] **The button is grafted onto the vanilla statistics screen** through
+      `Screens.getButtons()`, which has nothing in common with the Forge event. This is the one
+      that would have failed silently, leaving no trace in any log.
+- [x] **Storage writes to Fabric's own config directory**, session closed, no `inProgress`, and
+      `active + afk` matches `end - start` to the millisecond.
+
+Not yet proven on Fabric: the shutdown hook. Returning to the main menu closed the session
+before the window was closed, so the hook never ran. It is shared code in `common` and was seen
+working on Forge, but it has not been exercised here.
+
+**Both loaders therefore work end to end from the same `common`, with no shared library the
+player has to install** — which is the claim §3.3 made when it ruled out Architectury API,
+now demonstrated rather than argued.
+
 **The schema is identical to the 1.12 one** — same `schemaVersion`, same structure, same keys.
 A player moving from 1.12 to 1.20 therefore keeps their history. That was not designed for; it
 falls out of sharing `core`, and it is worth not breaking.
