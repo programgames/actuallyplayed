@@ -9,9 +9,17 @@ ferme pendant que tu regardais une vidéo. Actually Played fait cette différenc
 Le mod mesure le temps passé sur chaque serveur et dans chaque monde solo, en séparant
 strictement **le temps réellement joué** du **temps AFK**.
 
-- Minecraft 1.12.2 · Forge 14.23.5.2847+
+| Minecraft | Loader |
+|---|---|
+| 1.12.2 | Forge 14.23.5.2847+ |
+| 1.20.1 | Forge 47.2.30+ · Fabric |
+| 1.21.1 | NeoForge 21.1+ · Fabric |
+
 - **Client uniquement** — fonctionne sur n'importe quel serveur, sans que celui-ci ait le mod
+- **Aucune dépendance.** Un jar dans `mods/`, rien d'autre à installer
 - Aucun réseau, aucune télémétrie, tout reste sur ta machine
+- Ton historique te suit : le fichier de données a le même format sur toutes les versions et
+  tous les loaders
 
 *[English version](README.md)*
 
@@ -54,19 +62,25 @@ Actually Played lit les commandes que tu envoies. Elles sont nulles quand tu es 
 
 ## Installation
 
-1. Installe [Minecraft Forge](https://files.minecraftforge.net/) pour 1.12.2
-2. Dépose `actuallyplayed-1.12.2-x.y.z.jar` dans `.minecraft/mods/`
-3. Lance le jeu
+1. Installe le loader correspondant à ta version de Minecraft —
+   [Forge](https://files.minecraftforge.net/), [NeoForge](https://neoforged.net/) ou
+   [Fabric](https://fabricmc.net/). Sur Fabric, il te faut aussi
+   [Fabric API](https://modrinth.com/mod/fabric-api), dont presque tous les mods Fabric
+   dépendent.
+2. Dépose le jar correspondant à ta version et à ton loader dans `.minecraft/mods/` — par
+   exemple `actuallyplayed-neoforge-1.21.1-x.y.z.jar`.
+3. Lance le jeu.
 
-Aucune dépendance. Rien à installer côté serveur.
+Rien à installer côté serveur, et rien à installer à côté du mod.
 
 ---
 
 ## Utilisation
 
-Trois façons d'y accéder :
+**Échap → Statistiques → bouton « Temps de jeu »** en haut à droite, sur toutes les versions.
 
-- **Échap → Statistiques → bouton « Temps de jeu »** en haut à droite
+En **1.12.2**, deux accès supplémentaires :
+
 - **`/played`** (ou `/ap`) affiche les mêmes chiffres dans le chat
 - **Une touche de ton choix** — le raccourci est enregistré non assigné, dans
   *Options → Commandes → Actually Played*
@@ -80,18 +94,29 @@ L'écran affiche la destination où tu te trouves, et elle seule :
 
 Chaque serveur et chaque monde ont leur propre historique. Il t'attend quand tu y reviens.
 
-**`/played reset`** remet à zéro la destination où tu te trouves, après confirmation. Elle
-ne touche jamais aux autres ; pour tout effacer, supprime le fichier de données jeu fermé.
+**`/played reset`** (1.12.2) remet à zéro la destination où tu te trouves, après confirmation.
+Elle ne touche jamais aux autres. Sur toutes les versions, supprimer le fichier de données jeu
+fermé efface tout.
 
 ---
 
 ## Configuration
 
-Deux façons de régler le mod :
+**En 1.12.2**, deux façons :
 
-- **En jeu** : écran des mods → *Actually Played* → **Config**. Les changements
-  s'appliquent immédiatement, sans redémarrage.
+- **En jeu** : écran des mods → *Actually Played* → **Config**. Les changements s'appliquent
+  immédiatement, sans redémarrage.
 - **Par fichier** : `.minecraft/config/actuallyplayed/actuallyplayed.cfg`
+
+**À partir de 1.20**, par fichier uniquement :
+`.minecraft/config/actuallyplayed/actuallyplayed.properties`, à éditer jeu fermé. Il est créé
+au premier lancement avec les valeurs par défaut et l'explication de chaque réglage.
+
+> Il n'y a pas d'écran de réglages sur les versions récentes, et c'est délibéré. Fabric n'en
+> fournit pas, donc en proposer un imposerait d'installer deux mods de plus
+> ([Cloth Config](https://modrinth.com/mod/cloth-config) et
+> [Mod Menu](https://modrinth.com/mod/modmenu)) pour changer cinq valeurs. Un mod de cette
+> taille doit être un jar qu'on dépose et qu'on oublie.
 
 | Option | Défaut | Ce que ça fait |
 |---|---|---|

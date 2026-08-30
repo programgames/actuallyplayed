@@ -8,9 +8,17 @@ from an hour spent running a farm while you watched a video. Actually Played can
 The mod measures time spent on each server and in each singleplayer world, strictly
 separating **time actually played** from **time spent AFK**.
 
-- Minecraft 1.12.2 · Forge 14.23.5.2847+
+| Minecraft | Loader |
+|---|---|
+| 1.12.2 | Forge 14.23.5.2847+ |
+| 1.20.1 | Forge 47.2.30+ · Fabric |
+| 1.21.1 | NeoForge 21.1+ · Fabric |
+
 - **Client-side only** — works on any server, without that server having the mod
+- **No dependencies.** One jar in `mods/`, nothing else to install
 - No network traffic, no telemetry; everything stays on your machine
+- Your history moves with you: the data file has the same format on every version and every
+  loader
 
 *[Version française](README.fr.md)*
 
@@ -53,19 +61,24 @@ should be.**
 
 ## Installation
 
-1. Install [Minecraft Forge](https://files.minecraftforge.net/) for 1.12.2
-2. Drop `actuallyplayed-1.12.2-x.y.z.jar` into `.minecraft/mods/`
-3. Start the game
+1. Install the loader for your Minecraft version —
+   [Forge](https://files.minecraftforge.net/), [NeoForge](https://neoforged.net/) or
+   [Fabric](https://fabricmc.net/). On Fabric you also want
+   [Fabric API](https://modrinth.com/mod/fabric-api), which nearly every Fabric mod needs.
+2. Drop the jar for your version and loader into `.minecraft/mods/` — for instance
+   `actuallyplayed-neoforge-1.21.1-x.y.z.jar`.
+3. Start the game.
 
-No dependencies. Nothing to install server-side.
+Nothing to install server-side, and nothing to install alongside the mod.
 
 ---
 
 ## Usage
 
-Three ways in:
+**Esc → Statistics → the "Playtime" button** in the top right, on every version.
 
-- **Esc → Statistics → the "Playtime" button** in the top right
+On **1.12.2** there are two more ways in:
+
 - **`/played`** (or `/ap`) prints the same figures to chat
 - **A key of your choice** — the binding is registered unbound, under
   *Options → Controls → Actually Played*
@@ -79,18 +92,29 @@ The screen shows the destination you are in, and only that one:
 
 Every server and every world keeps its own history. It is waiting for you when you return.
 
-**`/played reset`** clears the destination you are on, after asking for confirmation. It
-never touches the others; to wipe everything, delete the data file with the game closed.
+**`/played reset`** (1.12.2) clears the destination you are on, after asking for confirmation.
+It never touches the others. On any version, deleting the data file with the game closed wipes
+everything.
 
 ---
 
 ## Configuration
 
-Two ways to change the settings:
+**On 1.12.2**, two ways:
 
-- **In game**: mod list → *Actually Played* → **Config**. Changes apply immediately, with
-  no restart.
+- **In game**: mod list → *Actually Played* → **Config**. Changes apply immediately, with no
+  restart.
 - **By file**: `.minecraft/config/actuallyplayed/actuallyplayed.cfg`
+
+**On 1.20 and later**, by file only:
+`.minecraft/config/actuallyplayed/actuallyplayed.properties`, edited with the game closed. It
+is written with the defaults and an explanation of each setting the first time the mod runs.
+
+> There is no settings screen on the newer versions, and that is deliberate. Fabric has no
+> built-in one, so providing it would mean requiring you to install two more mods
+> ([Cloth Config](https://modrinth.com/mod/cloth-config) and
+> [Mod Menu](https://modrinth.com/mod/modmenu)) to change five values. A mod this small should
+> be one jar you drop in and forget.
 
 | Option | Default | What it does |
 |---|---|---|
