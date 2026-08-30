@@ -34,3 +34,4 @@ actuallyplayed.config.retentionDays=Detailed history (days)
 actuallyplayed.config.retentionDays.tooltip=How long each session is kept in full detail. Older ones are merged into monthly summaries. No playtime is ever lost, only the detail.
 actuallyplayed.config.debugLogging=Log active/AFK transitions
 actuallyplayed.config.debugLogging.tooltip=Writes every switch between playing and AFK to the log. The mod is silent by default; turn this on to check that activity detection behaves as you expect.
+actuallyplayed.command.hint=Esc → Statistics → Playtime for the full screen. Settings are in the mod list.

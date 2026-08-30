@@ -156,122 +156,17 @@ fais.
 
 ---
 
-## Développer sur le projet
+## Contribuer
 
-### Prérequis
+Les rapports de bugs, les traductions et les pull requests sont les bienvenus. Tout ce qu'il
+faut pour compiler le mod, configurer un IDE et lancer les tests se trouve dans
+**[CONTRIBUTING.md](CONTRIBUTING.md)** (en anglais).
 
-**JDK 8 obligatoire.** ForgeGradle 2.3 et Gradle 4.10.3 ne fonctionnent sous aucun JDK plus
-récent. Le build échoue volontairement, avec un message clair, si `JAVA_HOME` pointe
-ailleurs.
-
-```bash
-# Vérifier
-java -version   # doit afficher 1.8
-
-# Sinon, pour la session courante (PowerShell)
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-8.0.472.8-hotspot"
-```
-
-### Première configuration
-
-```bash
-./gradlew setupDecompWorkspace   # une seule fois — télécharge et décompile Minecraft (10 à 20 min)
-./gradlew build                  # compile et produit le jar
-./gradlew :core:test             # tests unitaires du moteur
-./gradlew :forge-1.12:runClient  # lance Minecraft avec le mod
-```
-
-Le jar se trouve dans `forge-1.12/build/libs/`.
-
-### IntelliJ IDEA
-
-1. **File → Open** et sélectionne le dossier du projet. IntelliJ détecte Gradle seul.
-2. Dans la fenêtre d'import, choisis le **JDK 8** comme Gradle JVM.
-3. Une fois l'import terminé, exécute :
-   ```bash
-   ./gradlew genIntellijRuns
-   ```
-   > Cette tâche **doit** être lancée après l'import : elle écrit dans `.idea/workspace.xml`,
-   > qui n'existe pas avant. Si elle affiche
-   > *« Intellij workspace file could not be found »*, c'est que le projet n'a pas encore
-   > été importé.
-4. Redémarre IntelliJ. Les configurations **Minecraft Client** et **Minecraft Server**
-   apparaissent dans le menu déroulant, prêtes à être lancées ou déboguées.
-
-### Eclipse
-
-```bash
-./gradlew eclipse
-```
-
-Puis **File → Import → Existing Projects into Workspace** et sélectionne le dossier.
-
-Les configurations de lancement sont générées automatiquement dans `forge-1.12/` :
-
-- `forge-1.12_Client.launch`
-- `forge-1.12_Server.launch`
-
-Clic droit dessus → **Run As** ou **Debug As**. Les points d'arrêt fonctionnent
-directement.
-
-### Visual Studio Code
-
-Installe le *Extension Pack for Java*, puis ouvre le dossier. `.vscode/settings.json`
-pointe déjà VS Code vers le JDK 8.
-
-Les tâches sont prêtes (**Ctrl+Shift+P → Run Task**) :
-
-| Tâche | Effet |
-|---|---|
-| Build | `gradlew build` |
-| Tests (core) | `gradlew :core:test` |
-| Lancer Minecraft | Démarre le jeu |
-| Lancer Minecraft (attente du débogueur) | Démarre le jeu en attendant un débogueur sur le port 5005 |
-
-**Pour déboguer** : lance la configuration **« Attacher à Minecraft »** (F5). Elle démarre
-le jeu en mode attente puis s'y connecte.
-
-> ForgeGradle exécute Minecraft dans une JVM séparée, avec un classpath et des arguments
-> qu'il construit lui-même. Aucun IDE ne peut la lancer directement — d'où le passage par
-> l'attachement à distance. La même approche fonctionne dans les trois IDE :
-> `./gradlew :forge-1.12:runClient --debug-jvm` ouvre le port 5005.
-
-### Contrôle qualité
-
-```bash
-./gradlew :core:check   # tests + verification architecturale
-```
-
-`checkNoMinecraftImports` fait **échouer le build** si une classe de `core` importe
-`net.minecraft.*` ou `net.minecraftforge.*`, en pointant le fichier et la ligne. La règle
-d'architecture est ainsi garantie par l'outillage, pas par la vigilance.
-
-La CI GitHub Actions exécute les tests du moteur **avant** de préparer l'espace de travail
-Forge : si la logique est cassée, on le sait en quelques secondes plutôt qu'après vingt
-minutes de décompilation.
-
-### Structure du projet
-
-```
-core/          Logique métier — Java pur, AUCUNE dépendance Minecraft, couvert par 87 tests
-forge-1.12/    Couche d'adaptation Forge 1.12.2 — traduit les événements du jeu, rien de plus
-```
-
-Cette séparation n'est pas décorative : **`core` n'importe jamais une classe
-`net.minecraft.*`**. C'est ce qui rendra le portage vers les versions récentes de Minecraft
-peu coûteux — seule la couche `forge-*` sera à réécrire.
-
-Deux règles en découlent :
-
-- Le temps est **injecté** dans le moteur via une interface `Clock`, jamais lu directement.
-  Un test peut ainsi simuler cinq minutes d'inactivité instantanément.
-- Le moteur compte en **millisecondes**, pas en ticks — les ticks se dilatent avec le lag
-  du serveur et fausseraient la mesure.
-
-```bash
-./gradlew :core:test    # 87 tests, sans lancer Minecraft
-./gradlew :core:check   # les tests, plus la verification qu'aucun import Minecraft n'a glisse dans core
-```
+**Traduire le mod** est la façon la plus simple d'aider : copie
+`forge-1.12/src/main/resources/assets/actuallyplayed/lang/en_us.lang`, renomme-le selon ta
+langue (`de_de.lang`, `es_es.lang`…) et traduis la partie droite de chaque ligne. Deux
+règles : ne touche pas aux clés, et ne mets jamais un `%` seul dans une valeur — Minecraft
+passe chaque traduction dans un formateur, et un pourcent isolé casse la ligne.
 
 ---
 

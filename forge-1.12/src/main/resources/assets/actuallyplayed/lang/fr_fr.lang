@@ -34,3 +34,4 @@ actuallyplayed.config.retentionDays=Historique détaillé (jours)
 actuallyplayed.config.retentionDays.tooltip=Durée de conservation du détail de chaque session. Au-delà, les sessions sont fusionnées en résumés mensuels. Aucun temps n'est perdu, seul le détail disparaît.
 actuallyplayed.config.debugLogging=Journaliser les passages actif/AFK
 actuallyplayed.config.debugLogging.tooltip=Écrit chaque bascule entre jeu et AFK dans le log. Le mod est silencieux par défaut ; activez ceci pour vérifier que la détection se comporte comme prévu.
+actuallyplayed.command.hint=Échap → Statistiques → Temps de jeu pour l'écran complet. Les réglages sont dans la liste des mods.

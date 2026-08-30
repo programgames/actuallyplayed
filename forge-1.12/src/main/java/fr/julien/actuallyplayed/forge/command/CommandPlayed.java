@@ -131,6 +131,12 @@ public class CommandPlayed extends CommandBase {
                         + TextFormatting.GRAY + " / " + TextFormatting.WHITE
                         + DurationFormatter.format(afk)
                         + TextFormatting.GRAY + "  (" + DurationFormatter.formatPercent(ratio) + ")"));
+
+        // Where to find everything else. The mod is silent by design and lives behind a
+        // button in a corner of the Statistics screen; without a pointer, a player who found
+        // the command still has no idea the screen exists.
+        sender.sendMessage(new TextComponentString(
+                TextFormatting.DARK_GRAY + translate("actuallyplayed.command.hint")));
     }
 
     /**
