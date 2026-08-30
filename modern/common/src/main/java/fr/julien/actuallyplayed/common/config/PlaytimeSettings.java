@@ -1,7 +1,7 @@
 package fr.julien.actuallyplayed.common.config;
 
 import fr.julien.actuallyplayed.core.config.PlaytimeConfig;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

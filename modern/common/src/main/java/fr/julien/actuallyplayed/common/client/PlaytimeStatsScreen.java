@@ -16,8 +16,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.time.ZoneId;
 import java.util.List;
@@ -38,7 +38,7 @@ import java.util.Optional;
  */
 public final class PlaytimeStatsScreen extends Screen {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("actuallyplayed");
+    private static final Logger LOGGER = LogManager.getLogger("actuallyplayed");
 
     private final Screen parent;
     private final PlaytimeTracker tracker;

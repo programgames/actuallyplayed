@@ -194,7 +194,20 @@ Gradle plugins. `settings.gradle` includes only the module the selected version 
 `common` applies the matching ModDevGradle variant. A `plugins` block cannot be conditional, so
 the modules use `apply plugin:`.
 
-### 3.8 Target layout
+### 3.8 Logging goes through log4j, not slf4j
+
+Measured while sizing 1.16.5, and it removes a version difference rather than managing one.
+
+`common` used slf4j, which is what modern Minecraft logs through. **Minecraft only adopted it
+in 1.17**: on 1.16.5 the package does not exist, and the four files that log would each have
+needed a per-version variant. log4j, by contrast, is present on **every** version this project
+targets, 1.7.10 through 1.21 — verified by compiling `common` against 1.16.5, 1.20.1 and
+1.21.1. It is also already what `forge-1.12` uses, so the two trees now agree.
+
+The whole 1.16.5 logging problem therefore disappears by picking the library Minecraft has
+always shipped, instead of the newer one it happens to prefer today.
+
+### 3.9 Target layout
 
 ```
 actually-played/
@@ -207,7 +220,7 @@ actually-played/
    └─ fabric/                entry point + loader glue
 ```
 
-### 3.9 Toolchains on this machine
+### 3.10 Toolchains on this machine
 
 | | Installed | Needed by |
 |---|---|---|

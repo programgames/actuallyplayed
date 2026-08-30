@@ -9,8 +9,8 @@ import fr.julien.actuallyplayed.core.storage.JsonPlaytimeStore;
 import fr.julien.actuallyplayed.core.storage.UnsupportedSchemaException;
 import fr.julien.actuallyplayed.core.util.DurationFormatter;
 import net.minecraft.client.Minecraft;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -29,7 +29,7 @@ public final class ActuallyPlayed {
     public static final String MOD_ID = "actuallyplayed";
     public static final String MOD_NAME = "Actually Played";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    private static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     private static PlaytimeClient client;
 
