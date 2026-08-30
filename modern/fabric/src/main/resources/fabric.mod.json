@@ -6,6 +6,7 @@
   "description": "${description}",
   "authors": ["${mod_author}"],
   "license": "${license}",
+  "icon": "assets/actuallyplayed/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": ["fr.julien.actuallyplayed.fabric.ActuallyPlayedFabric"]

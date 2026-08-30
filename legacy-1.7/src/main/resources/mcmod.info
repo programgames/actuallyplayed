@@ -7,7 +7,7 @@
     "mcversion": "${minecraftVersion}",
     "authorList": ["Julien Marcon"],
     "credits": "",
-    "logoFile": "",
+    "logoFile": "assets/actuallyplayed/icon.png",
     "url": "https://github.com/programgames/actuallyplayed"
   }
 ]

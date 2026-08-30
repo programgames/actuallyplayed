@@ -133,6 +133,17 @@ task generateLangJson {
     }
 }
 
+// The icon lives beside the lang files, in the 1.12 module, for the same reason: one copy in
+// the repository rather than one per build. It is generated from the pixel grid in
+// tools/make-icon.py.
+def iconSource = rootProject.file('../forge-1.12/src/main/resources/assets/actuallyplayed/icon.png')
+def iconOutput = layout.buildDirectory.dir('generated/icon').get().asFile
+
+task copyIcon(type: Copy) {
+    from iconSource
+    into new File(iconOutput, "assets/${mod_id}")
+}
+
 // --- what the loader modules consume -------------------------------------------------------
 //
 // Source directories, not a jar. Unlike the upstream template this module has more than one of
@@ -154,6 +165,9 @@ artifacts {
     sourceSets.main.resources.srcDirs.each { commonResources it }
     commonResources(langOutput) {
         builtBy generateLangJson
+    }
+    commonResources(iconOutput) {
+        builtBy copyIcon
     }
 }
 

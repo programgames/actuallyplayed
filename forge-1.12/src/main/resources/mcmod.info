@@ -9,7 +9,7 @@
     "updateUrl": "",
     "authorList": ["Julien"],
     "credits": "",
-    "logoFile": "",
+    "logoFile": "assets/actuallyplayed/icon.png",
     "screenshots": [],
     "dependencies": []
   }

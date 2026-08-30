@@ -29,3 +29,6 @@ out/
 !.vscode/tasks.json
 !.vscode/launch.json
 legacy-1.7/run/
+
+# Generated from tools/make-icon.py; the grid in that script is the source.
+tools/icon-*.png
