@@ -159,12 +159,40 @@ be joined by others at 1.21.5, where the render pipeline was rewritten.
 > Temurin 21 satisfies this without anything being installed on the machine; older targets keep
 > compiling against their own toolchain regardless of what Gradle runs on.
 
-### 3.7 MultiLoader first, Stonecutter when the second version lands
+### 3.7 One version at a time, selected by a build property — Stonecutter deferred again
 
-Both are unfamiliar toolchains. Standing them up together means debugging two at once with
-nothing working to compare against, so `modern/` starts as **MultiLoader only, at 1.20.1**,
-and Stonecutter arrives with the second Minecraft version — which is when it first earns its
-keep. Until then a single version needs no preprocessor.
+Stonecutter is the tool the ecosystem uses for the version axis, and §3.4 still describes what
+it does. Standing it up in this project turned out to cost more than it buys **today**:
+
+- it is Kotlin-DSL only at 0.9.7, so all of `modern/` would have to be converted from Groovy;
+- combining its per-version subprojects with MultiLoader's per-loader ones needs its `branch`
+  feature, and the official template covers Fabric alone — there is no reference for the
+  combination;
+- against that, §3.6 measured what it would buy right now: **one line**.
+
+So the version is chosen with a Gradle property instead:
+
+```bash
+./gradlew build              # 1.20.1, the default
+./gradlew -Pmc=1.21.1 build
+```
+
+Everything that varies lives in `versions/<version>.properties` — Minecraft version, Java
+level, loader module, dependency versions — and `settings.gradle` reads the selected one before
+any project is configured. The handful of Java calls that differ live in a per-version source
+directory (`common/src/mc1_20`, `common/src/mc1_21`), added to the source set by the build.
+Both are plain Gradle; no plugin, no preprocessor, and the Groovy build stays as it was.
+
+**The trade this makes.** One version builds at a time, so shipping the matrix means one CI job
+per version rather than one job producing everything. That is a fair price for a mod with two
+or three live targets, and it stops being one when the count grows or when a single file needs
+several versions interleaved. **Revisit at 1.21.5**, where the render pipeline was rewritten and
+the diff will be a real volume rather than one line.
+
+**Which loader, by version.** Forge below 1.20.2, NeoForge above it, and they need different
+Gradle plugins. `settings.gradle` includes only the module the selected version uses, and
+`common` applies the matching ModDevGradle variant. A `plugins` block cannot be conditional, so
+the modules use `apply plugin:`.
 
 ### 3.8 Target layout
 
@@ -384,14 +412,15 @@ falls out of sharing `core`, and it is worth not breaking.
 
 ## 6. Phase 3 — fan out
 
-- [ ] NeoForge 1.21.1
-- [ ] Fabric 1.21.1
+- [x] NeoForge 1.21.1 — jar builds
+- [x] Fabric 1.21.1 — jar builds
+- [ ] Run both 1.21.1 jars in game
 - [ ] Latest 1.21.x — expect the 1.21.5 render-pipeline break to hit the draw loop, and
       nothing else
 - [ ] 1.16.5 Forge
 - [ ] 1.19.2 / 1.18.2 as filler
 - [ ] Release workflow extended to build and attach the whole matrix
-- [x] CI builds both loaders on 1.20.1, in a job of its own beside the 1.12 one
+- [x] CI builds every loader of every modern version, as a matrix beside the 1.12 job
 
 ---
 

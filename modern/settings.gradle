@@ -2,6 +2,16 @@
 // root. The root build enforces JDK 8 and runs Gradle 4.10.3 because ForgeGradle 2.3 needs
 // both; every toolchain used here needs Gradle 8+ and JDK 17 or later. One build cannot be
 // both. See PORTING.md section 3.5.
+//
+// It also builds ONE Minecraft version at a time, chosen with -Pmc=<version>:
+//
+//     ./gradlew build              # the default, 1.20.1
+//     ./gradlew -Pmc=1.21.1 build
+//
+// Everything that differs between versions lives in versions/<version>.properties, and the
+// handful of Java calls that differ live in a per-version source directory. Stonecutter is
+// the tool the ecosystem uses for this, and it will be worth its cost when 1.21.5 lands with
+// a rewritten render pipeline; today the difference is one method call. See section 3.7.
 
 pluginManagement {
     repositories {
@@ -19,9 +29,30 @@ pluginManagement {
 
 plugins {
     // Provisions the JDK a module asks for when it is not installed, so the build does not
-    // depend on what happens to be on the machine.
+    // depend on what happens to be on the machine. This is how JDK 21 got here.
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
 }
+
+// --- version selection ---------------------------------------------------------------------
+
+def selected = settings.hasProperty('mc') ? settings.mc.toString() : '1.20.1'
+def descriptor = file("versions/${selected}.properties")
+if (!descriptor.exists()) {
+    def available = file('versions').listFiles()
+            .findAll { it.name.endsWith('.properties') }
+            .collect { it.name - '.properties' }
+            .sort()
+    throw new GradleException("Unknown Minecraft version '${selected}'. " +
+            "Available: ${available.join(', ')}")
+}
+
+def versionProperties = new Properties()
+descriptor.withInputStream { versionProperties.load(it) }
+
+// Published to every project through gradle.ext so the module scripts read one set of names
+// regardless of which version is active.
+gradle.ext.mcVersion = selected
+gradle.ext.versionProperties = versionProperties
 
 rootProject.name = 'modern'
 
@@ -29,5 +60,8 @@ rootProject.name = 'modern'
 // module and compiled into that module's jar, so nothing here ships as a separate artifact.
 include 'common'
 
-include 'forge'
 include 'fabric'
+
+// Forge below 1.20.2, NeoForge above it: NeoForge replaced Forge on modern versions, and the
+// two need different Gradle plugins. Only the one this version uses is included.
+include versionProperties.getProperty('loader_module')

@@ -1,4 +1,17 @@
+// Both loader plugins are declared here and applied by the module that needs them, because
+// which one is right depends on the Minecraft version: Forge below 1.20.2, NeoForge above.
+// A `plugins` block cannot be conditional, so the modules use `apply plugin:` instead.
 plugins {
     id 'fabric-loom' version '1.9-SNAPSHOT' apply(false)
     id 'net.neoforged.moddev.legacyforge' version '2.0.77' apply(false)
+    id 'net.neoforged.moddev' version '2.0.144' apply(false)
+}
+
+// The selected version's values, read once in settings.gradle, exposed to every project under
+// the names the module scripts use.
+allprojects {
+    gradle.versionProperties.each { key, value ->
+        ext.set(key.toString(), value.toString())
+    }
+    ext.set('mcVersion', gradle.mcVersion)
 }

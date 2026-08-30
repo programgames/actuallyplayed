@@ -7,17 +7,36 @@
 
 plugins {
     id 'multiloader-common'
-    id 'net.neoforged.moddev.legacyforge'
 }
 
-legacyForge {
-    // No loader, just a deobfuscated Minecraft to compile against.
-    mcpVersion = minecraft_version
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
+// A deobfuscated Minecraft to compile against, and no loader at all. Which plugin provides
+// that depends on the version: ModDevGradle's legacy variant below 1.20.2, the modern one
+// above, where NeoForge replaced Forge. Applied here rather than in a `plugins` block, which
+// cannot be conditional.
+if (loader_module == 'neoforge') {
+    apply plugin: 'net.neoforged.moddev'
+    neoForge {
+        neoFormVersion = neoform_version
+        parchment {
+            minecraftVersion = parchment_minecraft
+            mappingsVersion = parchment_version
+        }
+    }
+} else {
+    apply plugin: 'net.neoforged.moddev.legacyforge'
+    legacyForge {
+        mcpVersion = minecraft_version
+        parchment {
+            minecraftVersion = parchment_minecraft
+            mappingsVersion = parchment_version
+        }
     }
 }
+
+// The handful of calls that differ between Minecraft versions, one directory per version.
+// Everything else in this module compiles unchanged against every target -- verified by
+// compiling the whole adapter against 1.21.1, which turned up exactly one such call.
+sourceSets.main.java.srcDir "src/${version_source_set}/java"
 
 // `core` is shared as SOURCE, not as an artifact.
 //

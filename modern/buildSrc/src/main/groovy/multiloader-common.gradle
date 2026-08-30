@@ -63,23 +63,22 @@ jar {
 }
 
 processResources {
-    var expandProps = [
-            'version'                  : version,
-            'group'                    : project.group,
-            'minecraft_version'        : minecraft_version,
-            'minecraft_version_range'  : minecraft_version_range,
-            'fabric_version'           : fabric_version,
-            'fabric_loader_version'    : fabric_loader_version,
-            'mod_name'                 : mod_name,
-            'mod_author'               : mod_author,
-            'mod_id'                   : mod_id,
-            'license'                  : license,
-            'description'              : description,
-            'forge_version'            : forge_version,
-            'forge_loader_version_range': forge_loader_version_range,
-            'credits'                  : credits,
-            'java_version'             : java_version
-    ]
+    // Built from what the selected version actually declares rather than from a fixed list:
+    // 1.20.1 carries `forge_version`, 1.21.1 carries `neoforge_version`, and naming either one
+    // here would break the build on the other. Every key of versions/<version>.properties is
+    // available to the metadata files, plus the version-independent ones below.
+    var expandProps = [:]
+    gradle.versionProperties.each { key, value -> expandProps[key.toString()] = value.toString() }
+    expandProps.putAll([
+            'version'    : version,
+            'group'      : project.group,
+            'mod_name'   : mod_name,
+            'mod_author' : mod_author,
+            'mod_id'     : mod_id,
+            'license'    : license,
+            'description': description,
+            'credits'    : credits
+    ])
 
     // A newline typed into gradle.properties is a real newline by the time it reaches here,
     // and a real newline inside a JSON string is a parse error.
@@ -87,7 +86,7 @@ processResources {
         [(key): value instanceof String ? value.replace('\n', '\\\\n') : value]
     }
 
-    filesMatching(['META-INF/mods.toml']) {
+    filesMatching(['META-INF/mods.toml', 'META-INF/neoforge.mods.toml']) {
         expand expandProps
     }
     filesMatching(['pack.mcmeta', 'fabric.mod.json']) {

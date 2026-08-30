@@ -69,20 +69,36 @@ jobs:
           path: core/build/reports/tests/
 
   modern:
-    name: Minecraft 1.20.1 (Forge and Fabric)
+    name: Minecraft ${{ matrix.mc }} (${{ matrix.loaders }})
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: modern
 
+    strategy:
+      # One version failing should not hide the state of the others.
+      fail-fast: false
+      matrix:
+        include:
+          - mc: '1.20.1'
+            loaders: 'Forge and Fabric'
+            # Gradle itself may run on any JDK for this version; the toolchain handles the
+            # compile target.
+            jdk: '17'
+          - mc: '1.21.1'
+            loaders: 'NeoForge and Fabric'
+            # Loom refuses to set up Minecraft 1.21.1 unless Gradle itself runs on JDK 21 --
+            # a toolchain declaration is not enough. See PORTING.md section 3.6.
+            jdk: '21'
+
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: ${{ matrix.jdk }}
 
       # Its own cache key: this build shares no dependency with the 1.12 one, and mixing them
       # would evict one on every change to the other.
@@ -93,22 +109,23 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
             ~/.neoformruntime
-          key: ${{ runner.os }}-modern-${{ hashFiles('modern/**/*.gradle', 'modern/gradle.properties', 'modern/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-modern-
+          key: ${{ runner.os }}-modern-${{ matrix.mc }}-${{ hashFiles('modern/**/*.gradle', 'modern/gradle.properties', 'modern/versions/*.properties', 'modern/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-modern-${{ matrix.mc }}-
 
       # Fails in seconds if a loader import found its way into the shared module, rather than
       # after Minecraft has been decompiled.
       - name: Check that common stays loader-neutral
-        run: ./gradlew :common:checkNoLoaderImports --no-daemon --stacktrace
+        run: ./gradlew -Pmc=${{ matrix.mc }} :common:checkNoLoaderImports --no-daemon --stacktrace
 
       - name: Build both loaders
-        run: ./gradlew build --no-daemon --stacktrace
+        run: ./gradlew -Pmc=${{ matrix.mc }} build --no-daemon --stacktrace
 
       - name: Upload the jars
         uses: actions/upload-artifact@v7
         with:
-          name: actuallyplayed-1.20.1
+          name: actuallyplayed-${{ matrix.mc }}
           path: |
             modern/forge/build/libs/*.jar
+            modern/neoforge/build/libs/*.jar
             modern/fabric/build/libs/*.jar
           if-no-files-found: error

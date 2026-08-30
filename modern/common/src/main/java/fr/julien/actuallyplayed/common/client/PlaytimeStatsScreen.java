@@ -89,7 +89,10 @@ public final class PlaytimeStatsScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         try {
-            renderBackground(graphics);
+            // Through a per-version class: the signature gained three parameters in 1.21.
+            // It is the only call in the whole adapter that differs between the versions this
+            // mod targets. See PORTING.md section 3.7.
+            ScreenBackground.render(this, graphics, mouseX, mouseY, partialTick);
             // The screen deliberately does not pause the game, so the HUD keeps rendering
             // behind it. The crosshair sits at the exact centre of the screen - precisely where
             // the middle of a centred line of text lands - and showed through as a stray "+".
