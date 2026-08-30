@@ -159,11 +159,20 @@ call.
 Bug reports, translations and pull requests are welcome. Everything you need to build the
 mod, set up an IDE and run the tests is in **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
-**Translating the mod** is the easiest way to help: copy
+**Translations.** The mod ships in 27 languages: English, French, German, Spanish (Spain and
+Latin America), Portuguese (Brazil and Portugal), Italian, Dutch, Swedish, Danish, Finnish,
+Polish, Czech, Hungarian, Romanian, Greek, Russian, Ukrainian, Turkish, Indonesian,
+Vietnamese, Thai, Japanese, Korean and Chinese (simplified and traditional). Only English and
+French were written by a native speaker — **corrections to the others are very welcome**, and
+so is a language that is missing.
+
+To add one, copy
 `forge-1.12/src/main/resources/assets/actuallyplayed/lang/en_us.lang`, rename it to your
-locale (`de_de.lang`, `es_es.lang`, ...), and translate the right-hand side of each line.
-Two rules: keep the keys untouched, and never put a bare `%` in a value — Minecraft runs
-every translation through a formatter and a lone percent sign breaks it.
+locale (`sk_sk.lang`, `bg_bg.lang`, ...) using the exact code Minecraft 1.12.2 uses for that
+language, and translate the right-hand side of each line. Two rules: keep the keys untouched,
+and never put a bare `%` in a value — Minecraft runs every translation through a formatter
+and a lone percent sign breaks it. The `%s` in `actuallyplayed.gui.state.afk` is a duration
+and may go wherever your language wants it.
 
 ---
 

@@ -29,7 +29,10 @@ First release.
 - A key binding to open the screen, registered unbound.
 - Five settings, editable in game and applied without a restart: AFK threshold, shortest
   session kept, autosave interval, detailed-history retention, and a diagnostic log.
-- French and English translations, including the settings screen.
+- Translated into 27 languages, settings screen included: English, French, German, Spanish
+  (Spain and Latin America), Portuguese (Brazil and Portugal), Italian, Dutch, Swedish,
+  Danish, Finnish, Polish, Czech, Hungarian, Romanian, Greek, Russian, Ukrainian, Turkish,
+  Indonesian, Vietnamese, Thai, Japanese, Korean, and Chinese (simplified and traditional).
 - Crash resistance: the running session is pre-recorded on every autosave, so a crash costs
   at most the autosave interval rather than the whole session.
 - Data is stored as readable, hand-editable JSON, written atomically. A damaged file is set

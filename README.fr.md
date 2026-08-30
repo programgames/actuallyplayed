@@ -162,11 +162,20 @@ Les rapports de bugs, les traductions et les pull requests sont les bienvenus. T
 faut pour compiler le mod, configurer un IDE et lancer les tests se trouve dans
 **[CONTRIBUTING.md](CONTRIBUTING.md)** (en anglais).
 
-**Traduire le mod** est la façon la plus simple d'aider : copie
+**Les traductions.** Le mod est livré en 27 langues : anglais, français, allemand, espagnol
+(Espagne et Amérique latine), portugais (Brésil et Portugal), italien, néerlandais, suédois,
+danois, finnois, polonais, tchèque, hongrois, roumain, grec, russe, ukrainien, turc,
+indonésien, vietnamien, thaï, japonais, coréen et chinois (simplifié et traditionnel). Seuls
+l'anglais et le français ont été écrits par un locuteur natif : **les corrections sur les
+autres sont les bienvenues**, et une langue manquante aussi.
+
+Pour en ajouter une : copie
 `forge-1.12/src/main/resources/assets/actuallyplayed/lang/en_us.lang`, renomme-le selon ta
-langue (`de_de.lang`, `es_es.lang`…) et traduis la partie droite de chaque ligne. Deux
-règles : ne touche pas aux clés, et ne mets jamais un `%` seul dans une valeur — Minecraft
-passe chaque traduction dans un formateur, et un pourcent isolé casse la ligne.
+langue (`sk_sk.lang`, `bg_bg.lang`…) avec le code exact utilisé par Minecraft 1.12.2, et
+traduis la partie droite de chaque ligne. Deux règles : ne touche pas aux clés, et ne mets
+jamais un `%` seul dans une valeur — Minecraft passe chaque traduction dans un formateur, et
+un pourcent isolé casse la ligne. Le `%s` de `actuallyplayed.gui.state.afk` est une durée et
+peut se placer où ta langue le demande.
 
 ---
 
