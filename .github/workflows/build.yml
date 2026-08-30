@@ -38,6 +38,11 @@ jobs:
       - name: Test the engine
         run: ./gradlew :core:check --no-daemon --stacktrace
 
+      # Same reasoning: reads text files, needs no Minecraft. A translation that drifted
+      # from en_us.lang fails here in seconds instead of shipping half in English.
+      - name: Check the translations
+        run: ./gradlew checkLangParity --no-daemon --stacktrace
+
       - name: Set up the Forge workspace
         run: ./gradlew setupCiWorkspace --no-daemon
 

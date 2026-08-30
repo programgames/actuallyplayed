@@ -281,7 +281,8 @@ Built **MVP first, then iterations**, with in-game validation at each step.
       *Done: 66 tests green, mod active in game.*
 - [x] **Step 5 — GUI**: button grafted onto the vanilla Statistics screen, main screen with
       live session and totals.
-- [x] **Step 6 — Detail & polish**: in-game editable config, FR/EN i18n.
+- [x] **Step 6 — Detail & polish**: in-game editable config, i18n (FR/EN at the time; 27
+      locales since 2026-08-30, see §13).
       *Note: the per-server detail screen built at this step was later removed — see §2.8.*
 - [x] **Step 7 — Hardening pass** (2026-08-29): immutable config, synchronised handler,
       cached target resolution, dead code removed, `ServerAddress` moved into `core` with
@@ -472,9 +473,22 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
   `checkNoMinecraftImports` task reports the offending file and line. The central
   architectural invariant is therefore enforced by tooling rather than vigilance — verified
   by deliberately injecting a forbidden import.
+- **`gradlew checkLangParity` fails if any `.lang` diverges from `en_us.lang`.** Defined in
+  the **root** `build.gradle` — it reads text files and needs neither Minecraft nor
+  ForgeGradle, so it answers in seconds; `forge-1.12:check` depends on it. It catches, each
+  with the file and line: a missing key (which shows in English with no error anywhere), an
+  unknown key, a duplicate key, an empty value, a missing `=`, a bare `%` (the
+  `Format error: %` trap), a `%s` count that differs from the reference, a UTF-8 BOM, bytes
+  that are not UTF-8, and a file name that is not a lowercase locale code. Verified by
+  injecting all ten faults in turn.
+  > The task's own source is deliberately **pure ASCII**: the BOM and the replacement
+  > character it looks for are written as `\uFEFF` and `\uFFFD` escapes rather than as
+  > literal characters. Gradle 4 reads build scripts with the
+  > platform default encoding, so a literal non-ASCII character in a build script is the
+  > same mojibake trap as in a Java source file (§7).
 - **GitHub Actions CI** (`.github/workflows/build.yml`): JDK 8, cached Minecraft decompile,
-  engine tests **before** the Forge setup (fail in seconds rather than after twenty minutes
-  of decompiling), then build and jar upload.
+  engine tests **then the translation check**, both **before** the Forge setup (fail in
+  seconds rather than after twenty minutes of decompiling), then build and jar upload.
 - **UTF-8 encoding forced** on every `JavaCompile` task.
 - **`acceptedMinecraftVersions = "[1.12.2]"`** — strictly the version compiled and tested.
 - **`.gitattributes`** pins `gradlew` to LF so the Linux CI runner does not hit
@@ -602,9 +616,29 @@ is abandoned and less capable overall. It had one thing right that we had wrong.
 - **Everything committed to the repository is in English**, without exception: code,
   comments, javadoc, build files, `.vscode`, `.gitignore`, `mcmod.info`, `README.md`, and
   this file.
-- **Translation files are the sole exception**, because that is their purpose:
-  `fr_fr.lang` and `README.fr.md`.
-- **`.lang` parity must be maintained** — 18 keys today, none orphaned, none missing.
+- **Translation files are the sole exception**, because that is their purpose: the
+  `.lang` files and `README.fr.md`.
+- **`.lang` parity must be maintained** — 37 keys today, none orphaned, none missing, in
+  every locale. `en_us.lang` is the reference: add a key there first, then everywhere else.
+  Minecraft falls back to `en_us` for a missing key, so a gap is silent, not fatal.
+- **27 locales are shipped** (2026-08-30): `en_us`, `fr_fr`, `de_de`, `es_es`, `es_mx`,
+  `pt_br`, `pt_pt`, `it_it`, `nl_nl`, `sv_se`, `da_dk`, `fi_fi`, `pl_pl`, `cs_cz`, `hu_hu`,
+  `ro_ro`, `el_gr`, `ru_ru`, `uk_ua`, `tr_tr`, `id_id`, `vi_vn`, `th_th`, `ja_jp`, `ko_kr`,
+  `zh_cn`, `zh_tw`. The file name must be the exact locale code of the vanilla 1.12.2
+  language list, lowercase — a file named after a code the game does not know is simply
+  never loaded, with no error anywhere.
+  - **Right-to-left languages are deliberately absent** (Arabic, Hebrew, Persian): the
+    1.12.2 font renderer draws glyphs left to right with no shaping or joining, so the text
+    would be unreadable rather than merely imperfect.
+  - **Norwegian is absent for a different reason**: the locale code moved between
+    `no_no` and `nb_no` across Minecraft versions, and shipping the wrong one produces a
+    file that is silently ignored. Check against the running game's language list before
+    adding it.
+  - **`Actually Played` stays untranslated** in `gui.title` and in the key-binding category:
+    it is the mod's name, and a player looking for it in the mod list needs to recognise it.
+- **The `%s` in `gui.state.afk` is the only format specifier in the files**, and a lone `%`
+  anywhere in a value crashes the line (see §7). Translations are free to move `%s`
+  wherever the language wants it — `tr_tr` and `ko_kr` both put it first.
 - Spoken and written exchanges with the user remain in **French**.
 - **Licence: MIT** (`LICENSE`). A licence cannot be revoked retroactively: versions released
   under MIT stay MIT.

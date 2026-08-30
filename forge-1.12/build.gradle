@@ -38,6 +38,11 @@ dependencies {
     compile project(':core')
 }
 
+// The `.lang` files live in this module, so its `check` owns the parity guard. The task
+// itself sits in the root build.gradle because it needs no Minecraft — see the comment
+// there. `gradlew checkLangParity` runs it alone, in seconds.
+check.dependsOn rootProject.tasks.checkLangParity
+
 processResources {
     // MIT requires the notice to be included in all copies. Most mods skip this; it costs
     // one line and removes any argument.

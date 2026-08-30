@@ -28,6 +28,138 @@ idea {
     }
 }
 
+// Guard rail: every `.lang` file must carry exactly the keys of `en_us.lang`.
+//
+// Minecraft falls back to English for a missing key and ignores an unknown one, so a
+// divergence produces no error anywhere -- the translation is simply half in English, and
+// nobody notices until a player reports it. With 27 locales the check is no longer
+// something a human can do by eye.
+//
+// It lives in the ROOT project on purpose: it reads text files and needs neither
+// Minecraft nor ForgeGradle, so `gradlew checkLangParity` answers in seconds instead of
+// after a decompile. `forge-1.12/build.gradle` wires it into that module's `check`.
+task checkLangParity {
+    description = 'Fails the build if a .lang file diverges from en_us.lang.'
+    group = 'verification'
+
+    def langDir = file('forge-1.12/src/main/resources/assets/actuallyplayed/lang')
+    def langFiles = fileTree(dir: langDir, include: '*.lang')
+    inputs.files langFiles
+
+    doLast {
+        def problems = []
+
+        // Minecraft 1.12.2 loads a locale by an exact lowercase code (`pt_br`, never
+        // `pt_BR`). A file named anything else is not rejected -- it is never read at all.
+        def localeName = ~/^[a-z]{2,3}(_[a-z0-9]{2,4})?\.lang$/
+
+        def parse = { File file ->
+            def text = file.getText('UTF-8')
+
+            // Windows editors add a BOM by default. Minecraft reads it as part of the
+            // first key, which loses that one line and nothing else -- the quietest
+            // possible failure.
+            if (text.startsWith('\uFEFF')) {
+                problems << "${file.name}: starts with a UTF-8 BOM, which swallows the " +
+                        'first key. Save the file as UTF-8 without BOM.'
+                text = text.substring(1)
+            }
+            if (text.contains('\uFFFD')) {
+                problems << "${file.name}: holds bytes that are not valid UTF-8 -- the file " +
+                        'was probably saved as windows-1252. Re-save it as UTF-8.'
+            }
+
+            def entries = [:]
+            text.readLines().eachWithIndex { line, index ->
+                def trimmed = line.trim()
+                if (trimmed.isEmpty() || trimmed.startsWith('#')) {
+                    return
+                }
+                def separator = line.indexOf('=')
+                if (separator < 0) {
+                    problems << "${file.name}:${index + 1}  no '=' on this line: ${trimmed}"
+                    return
+                }
+                def key = line.substring(0, separator).trim()
+                def value = line.substring(separator + 1)
+                if (entries.containsKey(key)) {
+                    problems << "${file.name}:${index + 1}  duplicate key ${key} -- the last " +
+                            'one silently wins.'
+                }
+                if (value.trim().isEmpty()) {
+                    problems << "${file.name}:${index + 1}  empty value for ${key}."
+                }
+                entries[key] = value
+            }
+            return entries
+        }
+
+        // Counts the `%s` placeholders and rejects any other use of `%`. Minecraft runs
+        // every value through String.format, so a lone percent sign turns the line into
+        // `Format error: %` in game, and a dropped `%s` loses the duration it stood for.
+        def placeholders = { String value ->
+            def cleaned = value.replace('%%', '')
+            if (cleaned.replace('%s', '').contains('%')) {
+                return -1
+            }
+            return cleaned.count('%s')
+        }
+
+        def reference = new File(langDir, 'en_us.lang')
+        if (!reference.exists()) {
+            throw new GradleException("The reference translation is missing: ${reference}")
+        }
+
+        def referenceEntries = parse(reference)
+        def referenceKeys = referenceEntries.keySet()
+
+        langFiles.sort { it.name }.each { file ->
+            if (!localeName.matcher(file.name).matches()) {
+                problems << "${file.name}: not a Minecraft 1.12.2 locale code. The name must " +
+                        'be lowercase, like `pt_br.lang` -- the game never loads anything else.'
+            }
+
+            def entries = file.name == reference.name ? referenceEntries : parse(file)
+
+            (referenceKeys - entries.keySet()).each { key ->
+                problems << "${file.name}: missing ${key} -- it will silently show in English."
+            }
+            (entries.keySet() - referenceKeys).each { key ->
+                problems << "${file.name}: unknown key ${key} -- absent from en_us.lang, so " +
+                        'it is dead weight. Add it there first, or drop it.'
+            }
+
+            entries.each { key, value ->
+                if (!referenceKeys.contains(key)) {
+                    return
+                }
+                def found = placeholders(value)
+                if (found < 0) {
+                    problems << "${file.name}: ${key} holds a bare `%`, which renders the " +
+                            'whole line as `Format error: %` in game.'
+                    return
+                }
+                def expected = placeholders(referenceEntries[key])
+                if (found != expected) {
+                    problems << "${file.name}: ${key} has ${found} `%s` where en_us.lang has " +
+                            "${expected}. It may sit anywhere in the sentence, but it has to " +
+                            'be there.'
+                }
+            }
+        }
+
+        if (!problems.isEmpty()) {
+            throw new GradleException(
+                    'Translations diverge from en_us.lang, which is the reference:' +
+                    System.lineSeparator() +
+                    problems.collect { "  ${it}" }.join(System.lineSeparator()))
+        }
+
+        logger.lifecycle("Translations: ${langFiles.files.size()} locales, " +
+                "${referenceKeys.size()} keys each, all in step.")
+    }
+}
+
 // Guard rail: ForgeGradle 2.3 and Gradle 4.x only run under JDK 8. Failing here with a
 // clear message beats an inscrutable stack trace halfway through setupDecompWorkspace.
 def javaVersion = System.getProperty('java.version')

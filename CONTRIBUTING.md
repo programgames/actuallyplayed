@@ -2,12 +2,29 @@
 
 Thanks for looking. This is a small mod; the bar for a useful contribution is low.
 
-**The quickest way to help is a translation.** Copy
-`forge-1.12/src/main/resources/assets/actuallyplayed/lang/en_us.lang`, rename it to your
-locale code, and translate the right-hand side of each line. Keep the keys as they are, and
+**The quickest way to help is a translation.** The mod ships in 27 languages, but only
+English and French were written by a native speaker — a correction to any of the other 25 is
+as welcome as a new language.
+
+Copy `forge-1.12/src/main/resources/assets/actuallyplayed/lang/en_us.lang`, rename it to your
+locale code — the exact one Minecraft 1.12.2 uses, lowercase, or the game will never load the
+file — and translate the right-hand side of each line. Keep the keys as they are, and
 never put a bare `%` in a value: Minecraft runs every translation through a formatter, and a
 lone percent sign turns the line into `Format error: %` in game. This has already happened
-once here.
+once here. The `%s` in `actuallyplayed.gui.state.afk` is a duration; put it wherever your
+language wants it.
+
+Every locale carries the same 37 keys as `en_us.lang`. A missing key falls back to English
+silently, so run the check before opening the pull request:
+
+```bash
+./gradlew checkLangParity
+```
+
+It needs no Minecraft and answers in a few seconds. It names the file and line for a missing
+or unknown key, a duplicate, an empty value, a bare `%`, a `%s` that went astray, a UTF-8 BOM
+(Windows editors add one by default), a file saved as anything other than UTF-8, and a file
+name that is not a lowercase locale code. The CI runs it on every pull request.
 
 For anything touching the tracking rules, read `CLAUDE.md` first. It records every design
 decision and, more usefully, the traps already hit — several of them cost hours to find.
