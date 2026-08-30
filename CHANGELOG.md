@@ -9,7 +9,7 @@ checker compares.
 This file feeds three places at once — the GitHub release notes, the CurseForge file
 changelog, and the per-version strings in `update.json`. Write it once here.
 
-## [1.1.0] — unreleased
+## [1.1.0] — 2026-08-31
 
 Minecraft 1.7.10, 1.16.5, 1.20.1 and 1.21.1, and two fixes to activity detection that also
 reach 1.12.2.
@@ -44,7 +44,10 @@ reach 1.12.2.
 - `/played` and the key binding are 1.12.2 only. The statistics screen is reachable from
   Esc → Statistics everywhere.
 
-## [1.12.2-1.0.0] — unreleased
+## [1.12.2-1.0.0] — never published
+
+Written and tested, but 1.1.0 landed before it was uploaded anywhere. Kept here because it is
+what the mod does, and 1.1.0 above only says what changed since.
 
 First release.
 

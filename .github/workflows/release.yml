@@ -9,7 +9,10 @@ name: Release
 # "<minecraft>-<mod>", which is what Forge's update checker compares.
 on:
   push:
-    tags: ['[0-9]+.[0-9]+.[0-9]+']
+    # A glob, not a regular expression. GitHub matches tag filters with glob syntax, where `+`
+    # is a literal plus sign rather than "one or more" - so `[0-9]+.[0-9]+.[0-9]+` matches a tag
+    # shaped like `1+.2+.3` and never `1.1.0`. The tag would push and nothing would run.
+    tags: ['[0-9]*.[0-9]*.[0-9]*']
   workflow_dispatch:
 
 permissions:
@@ -75,19 +78,25 @@ jobs:
       # in one release would report different mod versions.
       - name: Check the tag matches the version being built
         run: |
-          LEGACY="$(grep '^modVersion=' gradle.properties | cut -d= -f2)"
+          V12="$(grep '^modVersion=' gradle.properties | cut -d= -f2)"
+          V17="$(grep '^modVersion=' legacy-1.7/gradle.properties | cut -d= -f2)"
           MODERN="$(grep '^mod_version=' modern/gradle.properties | cut -d= -f2)"
-          if [ "$LEGACY" != "$MODERN" ]; then
-            echo "gradle.properties says $LEGACY, modern/gradle.properties says $MODERN."
-            echo "One mod version describes the mod, whatever Minecraft version it is built for."
+          # All three builds, not just two: one mod version describes the mod, whatever
+          # Minecraft version it is built for, and a jar reporting a different one would sort
+          # wrongly in the update checker.
+          if [ "$V12" != "$MODERN" ] || [ "$V12" != "$V17" ]; then
+            echo "The three builds disagree on the mod version:"
+            echo "  gradle.properties            $V12"
+            echo "  legacy-1.7/gradle.properties $V17"
+            echo "  modern/gradle.properties     $MODERN"
             exit 1
           fi
-          if [ "$LEGACY" != "${GITHUB_REF_NAME}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match the built version ${LEGACY}."
+          if [ "$V12" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match the built version ${V12}."
             echo "Update modVersion and mod_version, or retag."
             exit 1
           fi
-          echo "Releasing ${LEGACY} for Minecraft ${{ matrix.mc }}"
+          echo "Releasing ${V12} for Minecraft ${{ matrix.mc }}"
 
       # update.json drives the "update available" marker, and its versions must be the exact
       # strings the mod reports. A missing entry means the checker says "up to date" forever,
