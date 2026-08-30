@@ -296,7 +296,7 @@ that keeps 1.12 working.
 - [x] **1.20.1 Forge** builds a self-contained jar
 - [x] **1.20.1 Fabric** builds from the same `common`, with no cross-loader runtime library
 - [x] Read the settings from a config file, shared by both loaders
-- [ ] Re-run the §8 manual list in game on 1.20.1 — none of it is covered by automated tests
+- [x] Re-run the §8 manual list in game on 1.20.1 (2026-08-30) — see below
 - [ ] Stonecutter, deferred to the second Minecraft version (§3.6)
 
 **Where it stands.** Both jars carry 34 `core` classes, 6 `common` classes, one loader class
@@ -305,9 +305,34 @@ each: start the adapter, feed it the client tick, graft the button onto the vani
 screen. `core` needed no change of any kind, and `common` compiled against 1.20.1 on the first
 attempt.
 
-The Forge jar **loads on Minecraft 1.20.1** — `Actually Played active (client-side only).`,
-no exception, clean exit (2026-08-30). Loading is not yet recording: the §8 manual list has
-not been re-run there.
+### Verified in game on 1.20.1 Forge (2026-08-30)
+
+Threshold lowered to 60 s, as for the 1.12 runs.
+
+- [x] **Session opens on the save folder** — key `singleplayer:New World`, reached through
+      `getWorldPath` since 1.20 no longer exposes the folder name directly.
+- [x] **Pause menu → one transition, not a burst.** The flap that 1.12 suffered does not
+      appear; here the rule rests on `Minecraft.isPaused()` rather than an `instanceof` against
+      the menu screen.
+- [x] **Passive movement → AFK**, the decisive test, run against a countdown so there was no
+      ambiguity about when the player last touched anything: one second of push to start the
+      minecart, then nothing. AFK fired 60 s after that push, to the second, with `played`
+      frozen and exactly 60 s moved into `afk` — 89 s elapsed, 29 s played, 60 s AFK, and the
+      three numbers add up. `Input.forwardImpulse` reads zero under Mojang mappings while the
+      player is carried, exactly as `MovementInput` does on 1.12.
+- [x] **Storage** — the file is written on exit with no `inProgress`, and the shutdown hook is
+      visible in the log doing it (`[actuallyplayed-shutdown]`). The session's `active + afk`
+      matches `end - start` to two milliseconds, which is the closing tick.
+- [x] **The stats screen renders correctly**, with no draw failure anywhere in the log.
+
+**The schema is identical to the 1.12 one** — same `schemaVersion`, same structure, same keys.
+A player moving from 1.12 to 1.20 therefore keeps their history. That was not designed for; it
+falls out of sharing `core`, and it is worth not breaking.
+
+> ⚠️ **The vanilla stats screen has no room at the bottom on 1.20.** The first attempt put
+> the button at `height - 52`, which is where the General / Items / Mobs tabs live, with Done
+> at `height - 28` and only twelve pixels of gap above them. It drew "Playtime" straight over
+> "Items". The button now sits top right at `width - 110, 6`, matching the 1.12 build.
 
 ## 6. Phase 3 — fan out
 

@@ -58,8 +58,11 @@ public final class ActuallyPlayedForge {
     /**
      * Grafts the button onto the vanilla Statistics screen.
      * <p>
-     * Placed under the vanilla buttons rather than among them, so a resource pack or another
-     * mod rearranging that screen does not overlap it.
+     * Top right corner, matching the 1.12 build. The bottom of that screen is fully occupied:
+     * the General / Items / Mobs tabs sit at {@code height - 52} and Done at
+     * {@code height - 28}, with only twelve pixels of gap above them. A button placed there
+     * lands on top of the tabs - which is exactly what the first attempt did, drawing
+     * "Playtime" straight over "Items".
      */
     @SubscribeEvent
     public void onScreenInit(ScreenEvent.Init.Post event) {
@@ -73,7 +76,7 @@ public final class ActuallyPlayedForge {
                         Component.translatable("actuallyplayed.gui.button"),
                         button -> stats.getMinecraft().setScreen(
                                 new PlaytimeStatsScreen(stats, ActuallyPlayed.tracker())))
-                .bounds(stats.width / 2 - 100, stats.height - 52, 200, 20)
+                .bounds(stats.width - 110, 6, 100, 20)
                 .build());
     }
 }

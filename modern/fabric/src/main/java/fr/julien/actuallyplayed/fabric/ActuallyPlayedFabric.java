@@ -45,11 +45,13 @@ public final class ActuallyPlayedFabric implements ClientModInitializer {
             if (!(screen instanceof StatsScreen stats) || ActuallyPlayed.tracker() == null) {
                 return;
             }
+            // Top right, for the reason spelled out in the Forge entry point: the bottom of
+            // the vanilla screen is fully occupied by the tabs and Done.
             Screens.getButtons(screen).add(Button.builder(
                             Component.translatable("actuallyplayed.gui.button"),
                             button -> client.setScreen(
                                     new PlaytimeStatsScreen(stats, ActuallyPlayed.tracker())))
-                    .bounds(width / 2 - 100, height - 52, 200, 20)
+                    .bounds(width - 110, 6, 100, 20)
                     .build());
         });
     }
