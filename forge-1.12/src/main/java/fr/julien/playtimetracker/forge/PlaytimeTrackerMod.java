@@ -42,6 +42,7 @@ import java.time.ZoneId;
         // The mod stores nothing on the server and sends no packets, so joining a server
         // that does not have it must never be blocked.
         acceptableRemoteVersions = "*",
+        updateJSON = Reference.UPDATE_JSON,
         guiFactory = "fr.julien.playtimetracker.forge.config.PlaytimeGuiFactory"
 )
 public final class PlaytimeTrackerMod {

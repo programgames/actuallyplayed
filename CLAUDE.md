@@ -41,7 +41,7 @@ The figures are shown on a screen grafted onto the vanilla Statistics GUI.
 - **modid**: `playtimetracker`
 - **Mod name**: `Playtime Tracker`
 - **Root package**: `fr.julien.playtimetracker`
-- **Version**: SemVer; jar named `playtimetracker-1.12.2-0.1.0.jar`
+- **Version**: SemVer; jar named `playtimetracker-1.12.2-1.0.0.jar`
 
 ---
 
@@ -306,6 +306,10 @@ Built **MVP first, then iterations**, with in-game validation at each step.
   block — which is what `forge-1.12/build.gradle` does.
 - **Warning `This mapping 'stable_39' was designed for MC 1.12`** → use `snapshot_20171003`,
   the reference mapping for 1.12.2.
+- **No Forge dependency floor is needed for `ClientChatEvent`.** A review flagged it as
+  possibly absent from early 1.12.2 Forge builds, which would crash on event registration.
+  Checked against the universal jars: the class is present in `14.23.0.2486`, the very first
+  1.12.2 build. No `dependencies` clause required on that account.
 - **List rows not clickable.** `GuiSlot.handleMouseInput()` only handles the wheel and
   scrolling: it does **not** propagate clicks. A `GuiScreen` hosting a `GuiListExtended` must
   forward `mouseClicked` **and** `mouseReleased` explicitly, on top of `handleMouseInput`.
@@ -459,7 +463,51 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
 
 ---
 
-## 12. Language
+## 12. Release
+
+- **Version scheme: `MCVERSION-MAJOR.MINOR.PATCH`**, e.g. `1.12.2-1.0.0`. The Forge
+  convention adds `MAJORAPI`, which would sit at zero forever here: this mod publishes no
+  Java API and touches no world data. A `MAJOR` bump is reserved for a `playtime.json`
+  schema break that loses history. When a 1.20 port lands, `1.20.1-1.2.0` slots in beside
+  `1.12.2-1.2.0` and sorts correctly in every launcher.
+- **Git tags use the full version** (`1.12.2-1.0.0`, never `v1.0.0`) so the tag matches the
+  jar name exactly and the release workflow can check one against the other.
+- **`update.json` at the repo root** drives Forge's "update available" marker. Two traps
+  live here:
+  - The `updateUrl` field of `mcmod.info` is **dead metadata** — FML only ever reads the
+    `updateJSON` parameter of `@Mod`.
+  - The versions inside must be the exact strings the mod reports, prefix included
+    (`1.12.2-1.0.0`). Forge compares them with Maven's `ComparableVersion`, so a bare
+    `1.0.0` would sort below any `1.12.2-x` and the checker would report "up to date"
+    forever.
+  - **The URL points at `raw.githubusercontent.com`, so the repository must be public for
+    the check to work.** While it is private, Forge silently reports `FAILED`.
+- **`CHANGELOG.md` feeds three consumers**: the GitHub release body, the CurseForge file
+  changelog, and the per-version strings in `update.json`. Write it once there.
+- **`.github/workflows/release.yml`** fires on a version tag, verifies the tag matches
+  `gradle.properties`, builds, and opens a **draft** GitHub release with the jar attached.
+  Draft on purpose: publishing is a decision, not a side effect of pushing a tag.
+- **`gradlew clean` fails while Minecraft is running** — the running game holds
+  `core/build/libs/core-*.jar` open. Close the game first. Not a build defect.
+
+### Still to do before the first CurseForge publish
+
+- **A logo.** `mcmod.info` has `logoFile` empty, and there is no project avatar. Modrinth
+  bans generative-AI imagery outright since August 2026, and CurseForge rejects misleading
+  undisclosed AI images — the icon has to be drawn or commissioned.
+- **Make the repository public**, otherwise the update checker cannot reach `update.json`
+  and the `url` in the mod list points at a 404.
+- **Check the name "Playtime Tracker" is free on CurseForge.** Uniqueness is enforced and
+  a rejection is terminal: the project cannot be re-evaluated, it has to be recreated under
+  a new name.
+- **Mark the first file as `Release`, not beta** — CurseForge only syncs a project to its
+  launcher once it has one file marked as a release.
+- **Tick the AI-content disclosure on Modrinth.** Much of this code was written with an AI
+  assistant; the grace period ends 27 September 2026.
+
+---
+
+## 13. Language
 
 - **Everything committed to the repository is in English**, without exception: code,
   comments, javadoc, build files, `.vscode`, `.gitignore`, `mcmod.info`, `README.md`, and

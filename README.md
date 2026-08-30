@@ -63,7 +63,12 @@ No dependencies. Nothing to install server-side.
 
 ## Usage
 
-In game: **Esc → Statistics → the "Playtime" button** in the top right.
+Three ways in:
+
+- **Esc → Statistics → the "Playtime" button** in the top right
+- **`/playtime`** (or `/pt`) prints the same figures to chat
+- **A key of your choice** — the binding is registered unbound, under
+  *Options → Controls → Playtime Tracker*
 
 The screen shows the destination you are in, and only that one:
 
@@ -73,6 +78,9 @@ The screen shows the destination you are in, and only that one:
 - **Details** — first seen, session count, average duration, longest session
 
 Every server and every world keeps its own history. It is waiting for you when you return.
+
+**`/playtime reset`** clears the destination you are on, after asking for confirmation. It
+never touches the others; to wipe everything, delete the data file with the game closed.
 
 ---
 
@@ -238,7 +246,7 @@ logic is broken you know within seconds instead of after twenty minutes of decom
 ### Project structure
 
 ```
-core/          Business logic — pure Java, NO Minecraft dependency, covered by 82 tests
+core/          Business logic — pure Java, NO Minecraft dependency, covered by 87 tests
 forge-1.12/    Forge 1.12.2 adapter layer — translates game events, nothing more
 ```
 

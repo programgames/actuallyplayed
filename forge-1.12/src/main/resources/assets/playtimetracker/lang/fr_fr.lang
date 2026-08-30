@@ -32,5 +32,5 @@ playtimetracker.config.autosaveIntervalSeconds=Intervalle de sauvegarde (seconde
 playtimetracker.config.autosaveIntervalSeconds.tooltip=Fréquence d'écriture du fichier de données. Détermine aussi ce qu'un plantage peut vous coûter au maximum sur la session en cours.
 playtimetracker.config.retentionDays=Historique détaillé (jours)
 playtimetracker.config.retentionDays.tooltip=Durée de conservation du détail de chaque session. Au-delà, les sessions sont fusionnées en résumés mensuels. Aucun temps n'est perdu, seul le détail disparaît.
-playtimetracker.config.debugLogging=Journaliser les bascules d'activité
+playtimetracker.config.debugLogging=Journaliser les passages actif/AFK
 playtimetracker.config.debugLogging.tooltip=Écrit chaque bascule entre jeu et AFK dans le log. Le mod est silencieux par défaut ; activez ceci pour vérifier que la détection se comporte comme prévu.

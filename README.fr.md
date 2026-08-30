@@ -64,7 +64,12 @@ Aucune dépendance. Rien à installer côté serveur.
 
 ## Utilisation
 
-En jeu : **Échap → Statistiques → bouton « Temps de jeu »** en haut à droite.
+Trois façons d'y accéder :
+
+- **Échap → Statistiques → bouton « Temps de jeu »** en haut à droite
+- **`/playtime`** (ou `/pt`) affiche les mêmes chiffres dans le chat
+- **Une touche de ton choix** — le raccourci est enregistré non assigné, dans
+  *Options → Commandes → Playtime Tracker*
 
 L'écran affiche la destination où tu te trouves, et elle seule :
 
@@ -74,6 +79,9 @@ L'écran affiche la destination où tu te trouves, et elle seule :
 - **Détails** — première connexion, nombre de sessions, durée moyenne, session la plus longue
 
 Chaque serveur et chaque monde ont leur propre historique. Il t'attend quand tu y reviens.
+
+**`/playtime reset`** remet à zéro la destination où tu te trouves, après confirmation. Elle
+ne touche jamais aux autres ; pour tout effacer, supprime le fichier de données jeu fermé.
 
 ---
 
@@ -245,7 +253,7 @@ minutes de décompilation.
 ### Structure du projet
 
 ```
-core/          Logique métier — Java pur, AUCUNE dépendance Minecraft, couvert par 82 tests
+core/          Logique métier — Java pur, AUCUNE dépendance Minecraft, couvert par 87 tests
 forge-1.12/    Couche d'adaptation Forge 1.12.2 — traduit les événements du jeu, rien de plus
 ```
 
@@ -261,7 +269,7 @@ Deux règles en découlent :
   du serveur et fausseraient la mesure.
 
 ```bash
-./gradlew :core:test    # 82 tests, sans lancer Minecraft
+./gradlew :core:test    # 87 tests, sans lancer Minecraft
 ./gradlew :core:check   # les tests, plus la verification qu'aucun import Minecraft n'a glisse dans core
 ```
 

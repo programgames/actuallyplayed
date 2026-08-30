@@ -1,0 +1,69 @@
+name: Release
+
+# Tag the commit with the exact version the build produces, e.g. 1.12.2-1.0.0,
+# and push the tag. Later Minecraft versions slot in as 1.20.1-1.0.0 with no change here.
+on:
+  push:
+    tags: ['*-[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ForgeGradle 2.3 and Gradle 4.10.3 do not run on any JDK newer than 8.
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Cache Gradle and ForgeGradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.gradle/minecraft
+          key: ${{ runner.os }}-forge-${{ hashFiles('**/*.gradle', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-forge-
+
+      # The version lives in gradle.properties and the tag is typed by hand, so the two will
+      # drift eventually. A release with a mismatched name is painful to unpick once files
+      # are published, so fail here instead.
+      - name: Check the tag matches the version being built
+        run: |
+          BUILT="$(grep '^mcVersion=' gradle.properties | cut -d= -f2)-$(grep '^modVersion=' gradle.properties | cut -d= -f2)"
+          if [ "$BUILT" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match the built version ${BUILT}."
+            echo "Update modVersion in gradle.properties, or retag."
+            exit 1
+          fi
+          echo "Releasing ${BUILT}"
+
+      - name: Test the engine
+        run: ./gradlew :core:check --no-daemon --stacktrace
+
+      - name: Set up the Forge workspace
+        run: ./gradlew setupCiWorkspace --no-daemon
+
+      - name: Build the mod
+        run: ./gradlew build --no-daemon --stacktrace
+
+      # The sources jar is deliberately excluded: publishing one as a release artifact
+      # invites confusion about which file to install.
+      - name: Publish the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Playtime Tracker ${{ github.ref_name }}
+          body_path: CHANGELOG.md
+          draft: true
+          files: |
+            forge-1.12/build/libs/playtimetracker-*[0-9].jar
+          fail_on_unmatched_files: true

@@ -39,6 +39,10 @@ dependencies {
 }
 
 processResources {
+    // MIT requires the notice to be included in all copies. Most mods skip this; it costs
+    // one line and removes any argument.
+    from(rootProject.file('LICENSE'))
+
     inputs.property 'version', project.version
     inputs.property 'mcversion', project.minecraft.version
 
