@@ -4,7 +4,7 @@
 // Java module, compilable and testable without Minecraft.
 
 allprojects {
-    group = 'fr.julien.playtimetracker'
+    group = 'fr.julien.actuallyplayed'
     version = "${mcVersion}-${modVersion}"
 
     // Without this, Gradle compiles using the platform default encoding (windows-1252

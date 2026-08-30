@@ -1,9 +1,9 @@
-# Playtime Tracker
+# Actually Played
 
 **How long have you *actually* played?**
 
 Minecraft counts the minutes the game was open. It cannot tell an hour spent building apart
-from an hour spent running a farm while you watched a video. Playtime Tracker can.
+from an hour spent running a farm while you watched a video. Actually Played can.
 
 The mod measures time spent on each server and in each singleplayer world, strictly
 separating **time actually played** from **time spent AFK**.
@@ -45,7 +45,7 @@ anything: gravity, water currents, minecarts, mounts, a mob shoving you, the ser
 correcting you. Classic AFK setups are built on exactly that — a water canal, a minecart
 loop. A mod that measured movement would count you "active" all night long.
 
-Playtime Tracker reads the commands you send. They are zero while you are being carried.
+Actually Played reads the commands you send. They are zero while you are being carried.
 **A player drifting in a water current is marked AFK once the threshold passes, as they
 should be.**
 
@@ -54,7 +54,7 @@ should be.**
 ## Installation
 
 1. Install [Minecraft Forge](https://files.minecraftforge.net/) for 1.12.2
-2. Drop `playtimetracker-1.12.2-x.y.z.jar` into `.minecraft/mods/`
+2. Drop `actuallyplayed-1.12.2-x.y.z.jar` into `.minecraft/mods/`
 3. Start the game
 
 No dependencies. Nothing to install server-side.
@@ -66,9 +66,9 @@ No dependencies. Nothing to install server-side.
 Three ways in:
 
 - **Esc → Statistics → the "Playtime" button** in the top right
-- **`/playtime`** (or `/pt`) prints the same figures to chat
+- **`/played`** (or `/ap`) prints the same figures to chat
 - **A key of your choice** — the binding is registered unbound, under
-  *Options → Controls → Playtime Tracker*
+  *Options → Controls → Actually Played*
 
 The screen shows the destination you are in, and only that one:
 
@@ -79,7 +79,7 @@ The screen shows the destination you are in, and only that one:
 
 Every server and every world keeps its own history. It is waiting for you when you return.
 
-**`/playtime reset`** clears the destination you are on, after asking for confirmation. It
+**`/played reset`** clears the destination you are on, after asking for confirmation. It
 never touches the others; to wipe everything, delete the data file with the game closed.
 
 ---
@@ -88,9 +88,9 @@ never touches the others; to wipe everything, delete the data file with the game
 
 Two ways to change the settings:
 
-- **In game**: mod list → *Playtime Tracker* → **Config**. Changes apply immediately, with
+- **In game**: mod list → *Actually Played* → **Config**. Changes apply immediately, with
   no restart.
-- **By file**: `.minecraft/config/playtimetracker/playtimetracker.cfg`
+- **By file**: `.minecraft/config/actuallyplayed/actuallyplayed.cfg`
 
 | Option | Default | What it does |
 |---|---|---|
@@ -104,7 +104,7 @@ Two ways to change the settings:
 
 ## Your data
 
-Everything lives in `.minecraft/config/playtimetracker/playtime.json`, as readable,
+Everything lives in `.minecraft/config/actuallyplayed/playtime.json`, as readable,
 hand-editable JSON.
 
 ```

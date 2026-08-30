@@ -1,11 +1,11 @@
 [
   {
-    "modid": "playtimetracker",
-    "name": "Playtime Tracker",
+    "modid": "actuallyplayed",
+    "name": "Actually Played",
     "description": "Measures how long you spend on each server and in each singleplayer world, telling time you actually played apart from time you were AFK. Client-side only, works on any server. Open it from the Statistics screen.",
     "version": "${version}",
     "mcversion": "${mcversion}",
-    "url": "https://github.com/programgames/playtimetracker",
+    "url": "https://github.com/programgames/actuallyplayed",
     "updateUrl": "",
     "authorList": ["Julien"],
     "credits": "",

@@ -1,10 +1,10 @@
-# Playtime Tracker
+# Actually Played
 
 **Combien de temps as-tu *vraiment* joué ?**
 
 Minecraft sait compter les minutes où le jeu était ouvert. Il ne sait pas faire la
 différence entre une heure passée à construire et une heure passée à faire chauffer une
-ferme pendant que tu regardais une vidéo. Playtime Tracker fait cette différence.
+ferme pendant que tu regardais une vidéo. Actually Played fait cette différence.
 
 Le mod mesure le temps passé sur chaque serveur et dans chaque monde solo, en séparant
 strictement **le temps réellement joué** du **temps AFK**.
@@ -47,7 +47,7 @@ Or les montages AFK classiques reposent exactement là-dessus — un canal d'eau
 de minecart. Un mod qui mesurerait le déplacement te compterait « actif » pendant toute la
 nuit.
 
-Playtime Tracker lit les commandes que tu envoies. Elles sont nulles quand tu es transporté.
+Actually Played lit les commandes que tu envoies. Elles sont nulles quand tu es transporté.
 **Un joueur dans un courant d'eau est déclaré AFK au bout du délai, comme il se doit.**
 
 ---
@@ -55,7 +55,7 @@ Playtime Tracker lit les commandes que tu envoies. Elles sont nulles quand tu es
 ## Installation
 
 1. Installe [Minecraft Forge](https://files.minecraftforge.net/) pour 1.12.2
-2. Dépose `playtimetracker-1.12.2-x.y.z.jar` dans `.minecraft/mods/`
+2. Dépose `actuallyplayed-1.12.2-x.y.z.jar` dans `.minecraft/mods/`
 3. Lance le jeu
 
 Aucune dépendance. Rien à installer côté serveur.
@@ -67,9 +67,9 @@ Aucune dépendance. Rien à installer côté serveur.
 Trois façons d'y accéder :
 
 - **Échap → Statistiques → bouton « Temps de jeu »** en haut à droite
-- **`/playtime`** (ou `/pt`) affiche les mêmes chiffres dans le chat
+- **`/played`** (ou `/ap`) affiche les mêmes chiffres dans le chat
 - **Une touche de ton choix** — le raccourci est enregistré non assigné, dans
-  *Options → Commandes → Playtime Tracker*
+  *Options → Commandes → Actually Played*
 
 L'écran affiche la destination où tu te trouves, et elle seule :
 
@@ -80,7 +80,7 @@ L'écran affiche la destination où tu te trouves, et elle seule :
 
 Chaque serveur et chaque monde ont leur propre historique. Il t'attend quand tu y reviens.
 
-**`/playtime reset`** remet à zéro la destination où tu te trouves, après confirmation. Elle
+**`/played reset`** remet à zéro la destination où tu te trouves, après confirmation. Elle
 ne touche jamais aux autres ; pour tout effacer, supprime le fichier de données jeu fermé.
 
 ---
@@ -89,9 +89,9 @@ ne touche jamais aux autres ; pour tout effacer, supprime le fichier de données
 
 Deux façons de régler le mod :
 
-- **En jeu** : écran des mods → *Playtime Tracker* → **Config**. Les changements
+- **En jeu** : écran des mods → *Actually Played* → **Config**. Les changements
   s'appliquent immédiatement, sans redémarrage.
-- **Par fichier** : `.minecraft/config/playtimetracker/playtimetracker.cfg`
+- **Par fichier** : `.minecraft/config/actuallyplayed/actuallyplayed.cfg`
 
 | Option | Défaut | Ce que ça fait |
 |---|---|---|
@@ -105,7 +105,7 @@ Deux façons de régler le mod :
 
 ## Tes données
 
-Tout est dans `.minecraft/config/playtimetracker/playtime.json`, en JSON lisible et
+Tout est dans `.minecraft/config/actuallyplayed/playtime.json`, en JSON lisible et
 éditable à la main.
 
 ```

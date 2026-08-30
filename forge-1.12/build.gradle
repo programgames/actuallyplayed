@@ -12,7 +12,7 @@ buildscript {
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 
-archivesBaseName = 'playtimetracker'
+archivesBaseName = 'actuallyplayed'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -62,7 +62,7 @@ jar {
 
     manifest {
         attributes([
-            'Specification-Title'     : 'playtimetracker',
+            'Specification-Title'     : 'actuallyplayed',
             'Specification-Version'   : '1',
             'Implementation-Title'    : project.name,
             'Implementation-Version'  : project.version,

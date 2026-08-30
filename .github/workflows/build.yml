@@ -47,7 +47,7 @@ jobs:
       - name: Upload the jar
         uses: actions/upload-artifact@v4
         with:
-          name: playtimetracker
+          name: actuallyplayed
           path: forge-1.12/build/libs/*.jar
           if-no-files-found: error
 

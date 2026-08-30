@@ -24,7 +24,7 @@ First release.
   current, a minecart or a mount does not count as playing.
 - A statistics screen reachable from Esc → Statistics, showing the current destination only:
   the running session, the totals here, and the details.
-- `/playtime` (alias `/pt`) prints the same figures to chat, and `/playtime reset` clears the
+- `/played` (alias `/ap`) prints the same figures to chat, and `/played reset` clears the
   current destination after confirmation.
 - A key binding to open the screen, registered unbound.
 - Five settings, editable in game and applied without a restart: AFK threshold, shortest

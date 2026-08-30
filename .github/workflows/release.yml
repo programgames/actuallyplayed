@@ -61,9 +61,9 @@ jobs:
       - name: Publish the GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: Playtime Tracker ${{ github.ref_name }}
+          name: Actually Played ${{ github.ref_name }}
           body_path: CHANGELOG.md
           draft: true
           files: |
-            forge-1.12/build/libs/playtimetracker-*[0-9].jar
+            forge-1.12/build/libs/actuallyplayed-*[0-9].jar
           fail_on_unmatched_files: true

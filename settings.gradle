@@ -1,4 +1,4 @@
-rootProject.name = 'playtimetracker'
+rootProject.name = 'actuallyplayed'
 
 // Pure business logic, with no dependency on Minecraft.
 include 'core'

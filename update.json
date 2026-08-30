@@ -1,10 +1,10 @@
 {
-  "homepage": "https://github.com/programgames/playtimetracker",
+  "homepage": "https://github.com/programgames/actuallyplayed",
   "promos": {
     "1.12.2-latest": "1.12.2-1.0.0",
     "1.12.2-recommended": "1.12.2-1.0.0"
   },
   "1.12.2": {
-    "1.12.2-1.0.0": "First release.\nMeasures time spent on each server and world, telling real play time apart from AFK time.\nOpen it from Esc → Statistics, from /playtime, or from a key you assign in Options → Controls."
+    "1.12.2-1.0.0": "First release.\nMeasures time spent on each server and world, telling real play time apart from AFK time.\nOpen it from Esc → Statistics, from /played, or from a key you assign in Options → Controls."
   }
 }

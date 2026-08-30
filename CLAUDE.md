@@ -1,4 +1,4 @@
-# Playtime Tracker — Minecraft Forge mod
+# Actually Played — Minecraft Forge mod
 
 ## What this project is
 
@@ -38,10 +38,10 @@ The figures are shown on a screen grafted onto the vanilla Statistics GUI.
 
 ### Mod identity
 
-- **modid**: `playtimetracker`
-- **Mod name**: `Playtime Tracker`
-- **Root package**: `fr.julien.playtimetracker`
-- **Version**: SemVer; jar named `playtimetracker-1.12.2-1.0.0.jar`
+- **modid**: `actuallyplayed`
+- **Mod name**: `Actually Played`
+- **Root package**: `fr.julien.actuallyplayed`
+- **Version**: SemVer; jar named `actuallyplayed-1.12.2-1.0.0.jar`
 
 ---
 
@@ -138,7 +138,7 @@ stays bounded over time. Compaction runs at game start.
 ### 2.7 Persistence
 
 - Format: **a single JSON file**, readable and hand-editable, pretty-printed.
-- Location: `.minecraft/config/playtimetracker/`
+- Location: `.minecraft/config/actuallyplayed/`
 - **Periodic autosave** (60 s by default, configurable) + on disconnect + on exit.
 - **Atomic write**: a `.tmp` file in the same directory, `FileChannel.force()` to flush the
   OS cache, then `ATOMIC_MOVE`. The target file is always either the complete old version or
@@ -202,7 +202,7 @@ Goal: **make porting to other Minecraft versions cheap.**
 ```
 1.12/
 ├─ core/                        Gradle module — PURE JAVA, ZERO Minecraft import
-│  ├─ src/main/java/fr/julien/playtimetracker/core/
+│  ├─ src/main/java/fr/julien/actuallyplayed/core/
 │  │  ├─ PlaytimeTracker.java   Facade: lifecycle, autosave, crash recovery
 │  │  ├─ model/                 TargetType, TargetKey, ServerAddress, TrackedSession,
 │  │  │                         TrackedTarget, PlayerPlaytime, PlaytimeData,
@@ -216,8 +216,8 @@ Goal: **make porting to other Minecraft versions cheap.**
 │  └─ src/test/java/            JUnit tests (injected clock)
 │
 └─ forge-1.12/                  Gradle module — Forge 1.12.2 adapter layer
-   └─ src/main/java/fr/julien/playtimetracker/forge/
-      ├─ PlaytimeTrackerMod.java     @Mod, wiring
+   └─ src/main/java/fr/julien/actuallyplayed/forge/
+      ├─ ActuallyPlayedMod.java     @Mod, wiring
       ├─ Reference.java              modid, name, version (substituted at build time)
       ├─ bridge/                     TargetResolver, TargetIdentity
       ├─ event/                      PlaytimeClientHandler, StatsGuiHandler
@@ -497,7 +497,7 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
   undisclosed AI images — the icon has to be drawn or commissioned.
 - **Make the repository public**, otherwise the update checker cannot reach `update.json`
   and the `url` in the mod list points at a 404.
-- **Check the name "Playtime Tracker" is free on CurseForge.** Uniqueness is enforced and
+- **Check the name "Actually Played" is free on CurseForge.** Uniqueness is enforced and
   a rejection is terminal: the project cannot be re-evaluated, it has to be recreated under
   a new name.
 - **Mark the first file as `Release`, not beta** — CurseForge only syncs a project to its
