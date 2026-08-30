@@ -13,6 +13,8 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.TextFormatting;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.time.ZoneId;
@@ -36,6 +38,8 @@ import java.util.Optional;
  * instant they opened it.
  */
 public class GuiPlaytimeStats extends GuiScreen {
+
+    private static final Logger LOGGER = LogManager.getLogger("playtimetracker");
 
     private static final int BUTTON_DONE = 200;
     private static final int RULE_HALF_WIDTH = 150;
@@ -66,6 +70,15 @@ public class GuiPlaytimeStats extends GuiScreen {
 
     @Override
     public void initGui() {
+        try {
+            build();
+        } catch (Throwable t) {
+            LOGGER.error("Playtime Tracker could not open its statistics screen.", t);
+            mc.displayGuiScreen(parent);
+        }
+    }
+
+    private void build() {
         buttonList.clear();
         buttonList.add(new GuiButton(BUTTON_DONE, width / 2 - 100, height - 28, I18n.format("gui.done")));
 
@@ -93,6 +106,18 @@ public class GuiPlaytimeStats extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        try {
+            render(mouseX, mouseY, partialTicks);
+        } catch (Throwable t) {
+            // Rendering runs every frame, so a failure here would repeat sixty times a
+            // second and end as a crash report naming this mod. Close the screen instead:
+            // the player loses a statistics panel, not their session.
+            LOGGER.error("Playtime Tracker could not draw its statistics screen.", t);
+            mc.displayGuiScreen(parent);
+        }
+    }
+
+    private void render(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
         // The screen deliberately does not pause the game, so the HUD keeps rendering
         // behind it. The crosshair sits at the exact centre of the screen — precisely where

@@ -298,6 +298,32 @@ public class PlaytimeEngineTest {
     }
 
     @Test
+    public void rollsBackEverythingChargedEvenWhenTheClockJumpedBackMidIdle() {
+        // Regression: the rollback used to be measured as (now - lastActivityAt), which is
+        // shorter than what was actually charged when the clock regresses during the idle
+        // stretch — an NTP correction or the RTC skew of a dual-boot machine. The excess
+        // stayed counted as playtime, in the exact direction the mod exists to prevent.
+        engine.beginSession(PLAYER, SERVER);
+        playActively(5);
+
+        clock.advanceMinutes(2);
+        engine.tick();
+
+        clock.setTimeMillis(clock.currentTimeMillis() - MINUTE);
+        engine.tick();
+
+        clock.advanceMinutes(4);
+        engine.tick();
+
+        SessionSnapshot snapshot = engine.snapshot().get();
+        assertEquals(ActivityState.AFK, snapshot.getState());
+        assertEquals("only the minutes actually played may remain active",
+                5 * MINUTE, snapshot.getActiveMillis());
+        assertEquals("every charged idle millisecond must land in AFK",
+                6 * MINUTE, snapshot.getAfkMillis());
+    }
+
+    @Test
     public void tickResolutionDoesNotChangeTotals() {
         engine.beginSession(PLAYER, SERVER);
         // Many small ticks with no activity: must land exactly like a single big one.

@@ -32,8 +32,6 @@ jobs:
           key: ${{ runner.os }}-forge-${{ hashFiles('**/*.gradle', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-forge-
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
 
       # Runs first and needs no Minecraft at all: if the engine is broken, say so in
       # seconds rather than after a full decompile.

@@ -13,7 +13,6 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiIngameMenu;
 import net.minecraft.util.MovementInput;
 import net.minecraftforge.client.event.ClientChatEvent;
-import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -29,6 +28,12 @@ import java.util.Optional;
  * Translates Minecraft events into the tracker's vocabulary. Contains no tracking rules
  * of its own — every decision about what counts as playtime lives in {@code core}.
  *
+ * <h3>Failure isolation</h3>
+ * Every entry point catches {@link Throwable} and, on the first failure, stops the mod for
+ * the rest of the session. This mod runs on other machines alongside hundreds of others; an
+ * exception escaping here would surface as a Minecraft crash report naming Playtime Tracker.
+ * A failure must cost the mod its function, never the player their session.
+ *
  * <h3>Threading</h3>
  * Almost every call arrives on the Minecraft client thread, but {@link #shutdown()} runs on
  * the shutdown hook's own thread while the game loop may still be ticking. Both touch the
@@ -42,6 +47,13 @@ public final class PlaytimeClientHandler {
      * dead zone or a barely-nudged mouse should not keep the counter alive on its own.
      */
     private static final float ROTATION_EPSILON = 0.01f;
+
+    /**
+     * How long a real input keeps proving the window has focus after {@code Display} claims
+     * otherwise. Long enough to cover a false negative, short enough that a genuine alt-tab
+     * still registers almost at once - and the idle tail is rolled back anyway.
+     */
+    private static final long FOCUS_GRACE_MILLIS = 3000L;
 
     private final PlaytimeTracker tracker;
     private final TargetResolver resolver;
@@ -57,6 +69,8 @@ public final class PlaytimeClientHandler {
     private boolean hasRotationReference;
     private boolean lastFocused = true;
     private ActivityState lastLoggedState;
+    private long lastInputAt;
+    private boolean disabled;
 
     public PlaytimeClientHandler(PlaytimeTracker tracker, Minecraft minecraft, Logger logger) {
         this.tracker = tracker;
@@ -69,22 +83,55 @@ public final class PlaytimeClientHandler {
 
     @SubscribeEvent
     public synchronized void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) {
+        if (disabled || event.phase != TickEvent.Phase.END) {
             return;
         }
+        try {
+            updateSessionLifecycle();
+            if (!tracker.isSessionActive()) {
+                return;
+            }
 
-        updateSessionLifecycle();
-        if (!tracker.isSessionActive()) {
+            updateWindowFocus();
+            detectMovementIntent();
+            detectCameraRotation();
+            tracker.tick();
+
+            logStateTransitions();
+            reportSaveFailure();
+        } catch (Throwable t) {
+            disable(t);
+        }
+    }
+
+    /**
+     * Records a sign of life from a discrete input or interaction event.
+     * <p>
+     * Receiving one is also proof the window has focus: the operating system only delivers
+     * input to a focused window. That matters because {@code Display.isActive()} is not
+     * reliable everywhere, and without this a session could stay AFK for its entire life
+     * with no way back.
+     */
+    private synchronized void signalActivity() {
+        if (disabled) {
             return;
         }
+        try {
+            lastInputAt = System.currentTimeMillis();
+            if (!lastFocused) {
+                tracker.onWindowFocusChanged(true);
+                lastFocused = true;
+            }
+            tracker.onActivity();
+        } catch (Throwable t) {
+            disable(t);
+        }
+    }
 
-        updateWindowFocus();
-        detectMovementIntent();
-        detectCameraRotation();
-        tracker.tick();
-
-        logStateTransitions();
-        reportSaveFailure();
+    private void disable(Throwable failure) {
+        disabled = true;
+        logger.error("Playtime Tracker hit an unexpected error and has stopped recording for "
+                + "this session. Existing data is untouched. Please report this log.", failure);
     }
 
     /**
@@ -131,8 +178,15 @@ public final class PlaytimeClientHandler {
             return null;
         }
         if (world != resolvedFrom) {
+            TargetIdentity identity = resolver.resolve();
+            if (identity == null) {
+                // Never cache a failure. The player entity or the server data may simply not
+                // be set yet on this tick; pinning null here would silence the mod for the
+                // whole session, with no error anywhere.
+                return null;
+            }
             resolvedFrom = world;
-            cachedIdentity = resolver.resolve();
+            cachedIdentity = identity;
         }
         return cachedIdentity;
     }
@@ -239,49 +293,66 @@ public final class PlaytimeClientHandler {
      * world is genuinely frozen.
      */
     private boolean isWindowFocused() {
-        if (!Display.isActive()) {
+        // The pause menu freezes the world, so it outranks any proof of focus.
+        if (minecraft.isSingleplayer() && minecraft.currentScreen instanceof GuiIngameMenu) {
             return false;
         }
-        return !(minecraft.isSingleplayer() && minecraft.currentScreen instanceof GuiIngameMenu);
+        if (Display.isActive()) {
+            return true;
+        }
+        // Display.isActive() reports a false negative on several Linux window managers, in
+        // borderless fullscreen, and when the window sits on another virtual desktop. Recent
+        // input outranks it - see signalActivity.
+        return System.currentTimeMillis() - lastInputAt < FOCUS_GRACE_MILLIS;
     }
 
     // --- discrete input and interaction events ------------------------------------------
 
-    @SubscribeEvent
+    // Every handler below is a pure observer: it must see the event and never interfere.
+    // Hence receiveCanceled - a controller mod remapping input, or an inventory mod eating a
+    // scroll, cancels these routinely, and without the flag the player would be recorded as
+    // AFK while actively playing.
+
+    @SubscribeEvent(receiveCanceled = true)
     public void onKeyInput(InputEvent.KeyInputEvent event) {
-        tracker.onActivity();
+        signalActivity();
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(receiveCanceled = true)
     public void onMouseInput(InputEvent.MouseInputEvent event) {
-        tracker.onActivity();
+        signalActivity();
     }
 
-    /** Keyboard use inside a GUI — an inventory, a chest, a mod screen — is still playing. */
-    @SubscribeEvent
+    /** Keyboard use inside a GUI - an inventory, a chest, a mod screen - is still playing. */
+    @SubscribeEvent(receiveCanceled = true)
     public void onGuiKeyboard(GuiScreenEvent.KeyboardInputEvent.Pre event) {
-        tracker.onActivity();
+        signalActivity();
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(receiveCanceled = true)
     public void onGuiMouse(GuiScreenEvent.MouseInputEvent.Pre event) {
-        tracker.onActivity();
+        signalActivity();
     }
 
-    @SubscribeEvent
-    public void onGuiOpen(GuiOpenEvent event) {
-        tracker.onActivity();
-    }
-
-    @SubscribeEvent
+    @SubscribeEvent(receiveCanceled = true)
     public void onChat(ClientChatEvent event) {
-        tracker.onActivity();
+        signalActivity();
     }
 
-    @SubscribeEvent
+    /**
+     * Interactions count as activity.
+     * <p>
+     * This event fires on both sides, and on an integrated server the server-side call
+     * arrives on the server thread. The side check is explicit and first so the intent is
+     * visible; the identity check then keeps only the client's own player.
+     */
+    @SubscribeEvent(receiveCanceled = true)
     public void onInteract(PlayerInteractEvent event) {
+        if (!event.getSide().isClient()) {
+            return;
+        }
         if (event.getEntityPlayer() == minecraft.player) {
-            tracker.onActivity();
+            signalActivity();
         }
     }
 

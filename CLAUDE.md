@@ -87,6 +87,17 @@ threshold. Fewer special cases means fewer bugs.
   with retroactive rollback of the idle time already elapsed. Same for the singleplayer
   pause menu.
 
+> ⚠️ **The amount rolled back is counted as it is charged, never re-derived from a clock
+> subtraction.** `PlaytimeEngine.Session.activeSinceLastActivity` is incremented in lock-step
+> with `activeMillis` and reset by `markActive`.
+> The original implementation computed the rollback as `now - lastActivityAt`. Those two
+> quantities agree only while the clock moves forward — and an NTP correction, a manual
+> change, or the RTC skew of a dual-boot machine pulls it backwards. When that happened
+> mid-idle, the subtraction came out shorter than what had been charged and the difference
+> stayed misfiled as playtime: **5 real minutes of play were reported as 6**. Reproduced,
+> fixed, and locked in by `rollsBackEverythingChargedEvenWhenTheClockJumpedBackMidIdle`.
+> Do not "simplify" this back into a subtraction.
+
 ### 2.4 Granularity and data keys
 
 - **Per multiplayer server**, key = `host:port` (one entry per network; no attempt to tell
@@ -307,6 +318,24 @@ Built **MVP first, then iterations**, with in-game validation at each step.
   (windows-1252). Fixed with `options.encoding = 'UTF-8'` on every `JavaCompile` task in the
   root `build.gradle`. Minecraft's default font covers little beyond Latin-1 anyway, so
   decorative glyphs are best avoided in Java string literals.
+
+- **Observers must opt into cancelled events.** `@SubscribeEvent` defaults to
+  `receiveCanceled = false`. Every activity handler here is a pure observer, and controller
+  mods, inventory-tweak mods and chat-macro mods cancel input events routinely — without the
+  flag, those players would be recorded as AFK while actively playing. All activity handlers
+  carry `receiveCanceled = true`; keep it that way when adding one.
+- **`Display.isActive()` is not trustworthy.** It reports a false negative on several Linux
+  window managers, in borderless fullscreen, and across virtual desktops. Since
+  `onActivity()` is ignored while unfocused, a false negative would strand a session in AFK
+  for its whole life with no way out. A real input event now overrides it for
+  `FOCUS_GRACE_MILLIS`: the OS only delivers input to a focused window, so input *is* proof.
+- **Never cache a failed target resolution.** `resolveTarget()` caches on the world instance;
+  caching a `null` result would pin it for the entire session and silence the mod with no
+  error anywhere. Only successful resolutions are cached.
+- **`gradlew` must stay mode `100755` in git.** It was committed `100644`, which gives every
+  Linux and macOS contributor `Permission denied` on clone. The CI used to paper over it with
+  a `chmod` step; that step has been removed so a regression fails the build instead of being
+  hidden.
 
 ### ⚠️ Development environment trap: the username changes on every launch
 

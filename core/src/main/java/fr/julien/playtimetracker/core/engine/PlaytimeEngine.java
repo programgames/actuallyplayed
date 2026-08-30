@@ -26,6 +26,13 @@ import java.util.function.Supplier;
  * <p>Losing window focus applies the same rollback immediately, without waiting for the
  * threshold: alt-tabbing is unambiguous evidence the player is not playing.
  *
+ * <p>The amount to take back is <em>counted as it is charged</em>, never re-derived from a
+ * subtraction of two wall-clock readings. Those two quantities agree only while the clock
+ * moves forward, and the clock does not always move forward: an NTP correction, a manual
+ * change, or the RTC skew of a dual-boot machine can pull it backwards mid-session. When
+ * that happened, the rollback window measured by subtraction came out shorter than what had
+ * actually been charged, and the difference stayed misfiled as playtime.
+ *
  * <h3>Threading</h3>
  * Not thread-safe. Every call is expected to come from the Minecraft client thread.
  */
@@ -188,6 +195,9 @@ public final class PlaytimeEngine {
         }
         if (session.state == ActivityState.ACTIVE) {
             session.activeMillis += elapsed;
+            // Charged in lock-step with activeMillis, and reset by markActive. This is the
+            // exact figure switchToAfk has to take back.
+            session.activeSinceLastActivity += elapsed;
         } else {
             session.afkMillis += elapsed;
         }
@@ -213,17 +223,18 @@ public final class PlaytimeEngine {
         if (session.state == ActivityState.AFK) {
             return;
         }
-        long idle = now - session.lastActivityAt;
-        // Capped by what was actually charged: the idle span may predate the session's
-        // last accounting point, and the active counter must never go negative.
-        long rollback = Math.min(Math.max(idle, 0L), session.activeMillis);
+        // Capped by the session total as a belt-and-braces measure: the active counter must
+        // never go negative, whatever happened to the clock.
+        long rollback = Math.min(session.activeSinceLastActivity, session.activeMillis);
         session.activeMillis -= rollback;
         session.afkMillis += rollback;
+        session.activeSinceLastActivity = 0L;
         session.state = ActivityState.AFK;
     }
 
     private void markActive(long now) {
         session.lastActivityAt = now;
+        session.activeSinceLastActivity = 0L;
         session.state = ActivityState.ACTIVE;
     }
 
@@ -238,6 +249,8 @@ public final class PlaytimeEngine {
         long lastActivityAt;
         long activeMillis;
         long afkMillis;
+        /** Time charged to {@link #activeMillis} since the last sign of life. */
+        long activeSinceLastActivity;
         ActivityState state = ActivityState.ACTIVE;
         boolean windowFocused = true;
 
