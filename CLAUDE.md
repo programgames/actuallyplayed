@@ -159,6 +159,14 @@ damaged entries, not the whole history. A wholly unreadable file is **quarantine
 with `UnsupportedSchemaException` and the file is left intact. Overwriting it would destroy
 fields this version knows nothing about.
 
+> ⚠️ **The codec deliberately does not check that `active + afk` fits inside `end - start`.**
+> A review recommended it as an obvious invariant. It is not one: a clock stepping backwards
+> mid-session — NTP, a manual change, dual-boot RTC skew — legitimately leaves more time
+> charged than the two timestamps span. Enforcing the check would silently discard real
+> sessions from exactly the users the engine's rollback fix was written for. What *is*
+> rejected is what no clock can excuse: negative values, an end before a start, and a sum
+> that overflows. Locked in by `keepsASessionWhoseAccountedTimeExceedsItsSpan`.
+
 **Totals are derived, never stored.** Every total is recomputed from the sessions and the
 aggregates. A stored counter could drift away from what it summarises; deriving makes the
 invariant "compaction never changes the totals" true by construction rather than by
@@ -489,6 +497,26 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
   Draft on purpose: publishing is a decision, not a side effect of pushing a tag.
 - **`gradlew clean` fails while Minecraft is running** — the running game holds
   `core/build/libs/core-*.jar` open. Close the game first. Not a build defect.
+
+### Competitive landscape
+
+The niche is crowded, and the survey that turned up the name clash also mapped it:
+[Playtime Tracker](https://www.curseforge.com/minecraft/mc-mods/playtime-tracker) (Fabric,
+server-side), [Playtime Meter](https://www.curseforge.com/minecraft/mc-mods/playtime-meter),
+[Played](https://www.curseforge.com/minecraft/mc-mods/played),
+[IntegratedPlaytime](https://www.curseforge.com/minecraft/mc-mods/integratedplaytime).
+**None of them covers Forge 1.12.2** — they are all Fabric or modern-version mods, which is
+this project's clearest opening.
+
+- [ ] **Compare in depth against
+      [Wrapped — Play Time Tracker](https://www.curseforge.com/minecraft/mc-mods/wrapped-play-time-tracker).**
+      It is the closest functional competitor: lifetime playtime aggregated across every
+      world and server, an active/AFK split, and a configurable idle threshold. From the
+      listing alone it aggregates everything together where this mod separates by
+      destination, and there is no sign of movement-intent AFK detection — but that needs
+      checking against the real thing rather than a store page. Worth knowing precisely what
+      it does before writing the CurseForge description, so the description says what is
+      genuinely different instead of claiming novelty it does not have.
 
 ### Still to do before the first CurseForge publish
 

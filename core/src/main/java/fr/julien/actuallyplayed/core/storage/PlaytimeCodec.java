@@ -130,9 +130,13 @@ public final class PlaytimeCodec {
             return data;
         }
 
-        int version = optInt(root, "schemaVersion", SCHEMA_VERSION);
+        // Read as a long and compared as a long: optInt narrows, and a narrowing cast is
+        // the one thing that could turn an absurd schema version into a small one and defeat
+        // the very check that protects a newer file from being overwritten.
+        long version = optLong(root, "schemaVersion", SCHEMA_VERSION);
         if (version > SCHEMA_VERSION) {
-            throw new UnsupportedSchemaException(version, SCHEMA_VERSION);
+            throw new UnsupportedSchemaException(
+                    (int) Math.min(version, Integer.MAX_VALUE), SCHEMA_VERSION);
         }
 
         data.setInProgress(readProvisional(optObject(root, "inProgress")));
@@ -171,7 +175,7 @@ public final class PlaytimeCodec {
         long updated = optLong(json, "updated", -1L);
         long active = optLong(json, "active", -1L);
         long afk = optLong(json, "afk", -1L);
-        if (start < 0L || updated < start || active < 0L || afk < 0L) {
+        if (!isPlausible(start, updated, active, afk)) {
             return null;
         }
         return new ProvisionalSession(
@@ -217,7 +221,7 @@ public final class PlaytimeCodec {
                 long end = optLong(session, "end", -1L);
                 long active = optLong(session, "active", -1L);
                 long afk = optLong(session, "afk", -1L);
-                if (start < 0L || end < start || active < 0L || afk < 0L) {
+                if (!isPlausible(start, end, active, afk)) {
                     continue;
                 }
                 target.addSession(new TrackedSession(
@@ -250,6 +254,33 @@ public final class PlaytimeCodec {
         }
     }
 
+    /**
+     * Rejects a session whose numbers cannot describe anything real.
+     * <p>
+     * Deliberately <em>not</em> checked here: that {@code active + afk} fits inside
+     * {@code end - start}. It looks like an obvious invariant and it is not one — a clock
+     * that steps backwards mid-session (NTP, a manual change, dual-boot RTC skew) leaves a
+     * session whose accounted time legitimately exceeds the span between its two
+     * timestamps. Enforcing it would silently discard real sessions from exactly the users
+     * the engine's rollback fix was written for.
+     * <p>
+     * What is checked is what cannot be legitimate under any clock: negative values, an end
+     * before a start, and a sum that overflows. The overflow guard matters because every
+     * total in the model is a bare addition, and a wrapped negative total would surface on
+     * screen as a nonsense duration with no clue where it came from.
+     */
+    private static boolean isPlausible(long start, long end, long active, long afk) {
+        if (start < 0L || end < start || active < 0L || afk < 0L) {
+            return false;
+        }
+        try {
+            Math.addExact(active, afk);
+        } catch (ArithmeticException overflow) {
+            return false;
+        }
+        return true;
+    }
+
     // --- lenient accessors ---------------------------------------------------------
 
     private static JsonObject optObject(JsonObject json, String name) {
@@ -279,7 +310,15 @@ public final class PlaytimeCodec {
         }
     }
 
+    /** Clamped rather than narrowed, so an absurd value never wraps into a plausible one. */
     private static int optInt(JsonObject json, String name, int fallback) {
-        return (int) optLong(json, name, fallback);
+        long value = optLong(json, name, fallback);
+        if (value > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        if (value < Integer.MIN_VALUE) {
+            return Integer.MIN_VALUE;
+        }
+        return (int) value;
     }
 }

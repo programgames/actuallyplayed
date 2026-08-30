@@ -16,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 
 public class PlaytimeCodecTest {
 
@@ -143,6 +144,53 @@ public class PlaytimeCodecTest {
         TrackedTarget target = data.player(PLAYER).find(SERVER);
         assertEquals(1, target.getAggregates().size());
         assertEquals(500L, target.getTotalActiveMillis());
+    }
+
+    @Test
+    public void rejectsDurationsThatWouldOverflow() {
+        // Every total in the model is a bare addition. A value near Long.MAX_VALUE, whether
+        // from a bit flip or a slipped hand in a text editor, would wrap those sums into a
+        // negative duration and surface on screen as nonsense with no clue where it began.
+        String json = "{"
+                + "\"schemaVersion\": 1,"
+                + "\"players\": {\"" + PLAYER + "\": {\"targets\": {"
+                + "  \"server:mc.hypixel.net:25565\": {\"displayName\": \"Hypixel\","
+                + "     \"sessions\": ["
+                + "        {\"start\": 0, \"end\": 60000, \"active\": 9223372036854775807, \"afk\": 1},"
+                + "        {\"start\": 0, \"end\": 60000, \"active\": 60000, \"afk\": 0}"
+                + "     ], \"aggregates\": {}}"
+                + "}}}}";
+
+        TrackedTarget target = PlaytimeCodec.read(parse(json)).player(PLAYER).find(SERVER);
+
+        assertEquals("only the sane session survives", 1, target.getSessions().size());
+        assertTrue("and the total stays positive", target.getTotalMillis() > 0L);
+    }
+
+    @Test
+    public void keepsASessionWhoseAccountedTimeExceedsItsSpan() {
+        // A clock stepping backwards mid-session leaves more time charged than the two
+        // timestamps span. That is not corruption, and discarding it would silently delete
+        // real playtime.
+        String json = "{"
+                + "\"schemaVersion\": 1,"
+                + "\"players\": {\"" + PLAYER + "\": {\"targets\": {"
+                + "  \"server:mc.hypixel.net:25565\": {\"displayName\": \"Hypixel\","
+                + "     \"sessions\": [{\"start\": 1000, \"end\": 2000, \"active\": 600000, \"afk\": 0}],"
+                + "     \"aggregates\": {}}"
+                + "}}}}";
+
+        TrackedTarget target = PlaytimeCodec.read(parse(json)).player(PLAYER).find(SERVER);
+
+        assertEquals(1, target.getSessions().size());
+        assertEquals(600000L, target.getTotalActiveMillis());
+    }
+
+    @Test(expected = UnsupportedSchemaException.class)
+    public void refusesAnAbsurdSchemaVersionRatherThanNarrowingIt() {
+        // 2^32 + 1 truncates to 1 with a narrowing cast, which would slip past the very
+        // check that stops this build from overwriting a newer file.
+        PlaytimeCodec.read(parse("{\"schemaVersion\": 4294967297, \"players\": {}}"));
     }
 
     @Test

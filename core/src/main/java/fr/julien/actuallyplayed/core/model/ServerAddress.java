@@ -28,6 +28,9 @@ public final class ServerAddress {
     public static String normalize(String rawAddress) {
         String address = rawAddress == null ? "" : rawAddress.trim().toLowerCase(Locale.ROOT);
         if (address.isEmpty()) {
+            // Every unnameable server collapses into one shared bucket. That is a deliberate
+            // trade: a stable, obviously-wrong label beats inventing a key that would split
+            // the same destination across launches.
             return "unknown";
         }
         return hasPort(address) ? address : address + ":" + DEFAULT_PORT;

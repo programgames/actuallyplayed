@@ -38,19 +38,19 @@ public final class AtomicFileWriter {
         Path temp = target.resolveSibling(target.getFileName() + TEMP_SUFFIX);
 
         ByteBuffer bytes = ByteBuffer.wrap(content.getBytes(UTF_8));
-        FileChannel channel = FileChannel.open(temp,
+        // try-with-resources rather than try/finally: a close() that also fails must not
+        // replace the exception that explains what actually went wrong. "Disk full" is
+        // useful in a bug report; a generic close failure is not.
+        try (FileChannel channel = FileChannel.open(temp,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE);
-        try {
+                StandardOpenOption.WRITE)) {
             while (bytes.hasRemaining()) {
                 channel.write(bytes);
             }
             // Forces the bytes out of the OS cache and onto the device. Without it, a power
             // loss just after the move could leave an atomically-renamed but empty file.
             channel.force(true);
-        } finally {
-            channel.close();
         }
 
         try {
