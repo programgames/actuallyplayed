@@ -24,6 +24,15 @@ pluginManagement {
             name = 'Fabric'
             url = 'https://maven.fabricmc.net/'
         }
+        maven {
+            name = 'Forge'
+            url = 'https://maven.minecraftforge.net/'
+        }
+        // Architectury Loom, used for 1.16.5 alone -- see versions/1.16.5.properties.
+        maven {
+            name = 'Architectury'
+            url = 'https://maven.architectury.dev/'
+        }
     }
 }
 

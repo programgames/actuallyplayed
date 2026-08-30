@@ -80,7 +80,7 @@ public final class TargetResolver {
         if (user == null) {
             return "unknown";
         }
-        UUID id = user.getProfileId();
+        UUID id = PlayerAccount.uuid(user);
         if (id != null) {
             return id.toString();
         }

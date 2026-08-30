@@ -1,5 +1,8 @@
 package fr.julien.actuallyplayed.common;
 
+import fr.julien.actuallyplayed.common.bridge.InventorySlot;
+import fr.julien.actuallyplayed.common.bridge.PlayerAccount;
+import fr.julien.actuallyplayed.common.bridge.PlayerRotation;
 import fr.julien.actuallyplayed.common.bridge.TargetIdentity;
 import fr.julien.actuallyplayed.common.bridge.TargetResolver;
 import fr.julien.actuallyplayed.core.PlaytimeTracker;
@@ -224,8 +227,8 @@ public final class PlaytimeClient {
         if (player == null) {
             return;
         }
-        float yaw = player.getYRot();
-        float pitch = player.getXRot();
+        float yaw = PlayerRotation.yaw(player);
+        float pitch = PlayerRotation.pitch(player);
 
         if (!hasRotationReference) {
             // First tick of a session: nothing to compare against yet. Recording the reference
@@ -278,19 +281,18 @@ public final class PlaytimeClient {
         // down" query, and one native call per key code every tick is a poor trade for the
         // handful of unbound keys it would add - typing in a screen is already caught by the
         // cursor moving to it and by the buttons below.
-        for (var mapping : minecraft.options.keyMappings) {
+        for (net.minecraft.client.KeyMapping mapping : minecraft.options.keyMappings) {
             if (mapping.isDown()) {
                 fingerprint = fingerprint * 31L + mapping.getName().hashCode();
             }
         }
 
-        var mouse = minecraft.mouseHandler;
+        net.minecraft.client.MouseHandler mouse = minecraft.mouseHandler;
         if (mouse != null) {
+            // Left and right only: 1.16 has no isMiddlePressed, and the middle button's usual
+            // effect - picking a block, or the wheel - already shows in the selected slot.
             if (mouse.isLeftPressed()) {
                 fingerprint = fingerprint * 31L + 1001L;
-            }
-            if (mouse.isMiddlePressed()) {
-                fingerprint = fingerprint * 31L + 1002L;
             }
             if (mouse.isRightPressed()) {
                 fingerprint = fingerprint * 31L + 1003L;
@@ -309,7 +311,7 @@ public final class PlaytimeClient {
         LocalPlayer player = minecraft.player;
         if (player != null) {
             // The wheel leaves no state of its own, but its effect does.
-            fingerprint = fingerprint * 31L + player.getInventory().selected;
+            fingerprint = fingerprint * 31L + InventorySlot.selected(player);
             // Covers mining, attacking and using an item: the swing outlives the click that
             // started it by several ticks, and repeats for as long as the action does.
             fingerprint = fingerprint * 31L + (player.swinging ? 1L : 0L);
@@ -402,7 +404,7 @@ public final class PlaytimeClient {
             return;
         }
         Optional<SessionSnapshot> current = tracker.snapshot();
-        if (current.isEmpty()) {
+        if (!current.isPresent()) {
             return;
         }
         SessionSnapshot snapshot = current.get();

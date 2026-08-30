@@ -1,7 +1,10 @@
 plugins {
     id 'multiloader-loader'
-    id 'fabric-loom'
 }
+
+// Architectury Loom on 1.16.5, Fabric Loom elsewhere. Both expose the same `loom` extension
+// and the same dependency syntax, so everything below is written once.
+apply plugin: build_toolchain == 'architectury' ? 'dev.architectury.loom' : 'fabric-loom'
 
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"

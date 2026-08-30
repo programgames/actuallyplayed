@@ -1,8 +1,16 @@
 plugins {
     id 'multiloader-loader'
-    id 'net.neoforged.moddev.legacyforge'
 }
 
+apply plugin: build_toolchain == 'architectury' ? 'dev.architectury.loom' : 'net.neoforged.moddev.legacyforge'
+
+if (build_toolchain == 'architectury') {
+    dependencies {
+        minecraft "com.mojang:minecraft:${minecraft_version}"
+        mappings loom.officialMojangMappings()
+        forge "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    }
+} else {
 legacyForge {
     version = "${minecraft_version}-${forge_version}"
 
@@ -30,4 +38,5 @@ legacyForge {
 
 jar {
     finalizedBy('reobfJar')
+}
 }

@@ -1,10 +1,26 @@
-// Both loader plugins are declared here and applied by the module that needs them, because
-// which one is right depends on the Minecraft version: Forge below 1.20.2, NeoForge above.
-// A `plugins` block cannot be conditional, so the modules use `apply plugin:` instead.
-plugins {
-    id 'fabric-loom' version '1.9-SNAPSHOT' apply(false)
-    id 'net.neoforged.moddev.legacyforge' version '2.0.77' apply(false)
-    id 'net.neoforged.moddev' version '2.0.144' apply(false)
+// Loom comes in two flavours and only one may be on the classpath: Architectury Loom is a fork
+// of Fabric Loom and ships the same plugin class, so declaring both fails with
+// "'net.fabricmc.loom.LoomGradlePlugin' is neither a plugin or a rule source".
+//
+// Which one is right depends on the Minecraft version -- ModDevGradle cannot go below 1.17, so
+// 1.16.5 uses Architectury Loom (the build tool; Architectury API stays ruled out, see
+// PORTING.md section 3.3). A `plugins` block cannot be conditional, but a `buildscript` one can.
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.architectury.dev/' }
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.neoforged.net/releases' }
+    }
+    dependencies {
+        if (gradle.versionProperties.getProperty('build_toolchain') == 'architectury') {
+            classpath 'dev.architectury:architectury-loom:1.10.455'
+        } else {
+            classpath 'net.fabricmc:fabric-loom:1.9.2'
+            classpath 'net.neoforged:moddev-gradle:2.0.144'
+        }
+    }
 }
 
 // The selected version's values, read once in settings.gradle, exposed to every project under

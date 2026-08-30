@@ -8,6 +8,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,7 @@ public final class PlaytimeSettings {
     private static final String KEY_RETENTION = "retentionDays";
     private static final String KEY_DEBUG = "debugLogging";
 
-    private static final List<String> TEMPLATE = List.of(
+    private static final List<String> TEMPLATE = Arrays.asList(
             "# Actually Played",
             "#",
             "# Edit while the game is closed; the file is read once at startup.",
