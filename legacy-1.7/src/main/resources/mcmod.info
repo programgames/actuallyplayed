@@ -1,0 +1,13 @@
+[
+  {
+    "modid": "${modId}",
+    "name": "${modName}",
+    "description": "Measures how long you actually played on each server and world, telling it apart from time spent AFK.",
+    "version": "${version}",
+    "mcversion": "${minecraftVersion}",
+    "authorList": ["Julien Marcon"],
+    "credits": "",
+    "logoFile": "",
+    "url": "https://github.com/programgames/actuallyplayed"
+  }
+]

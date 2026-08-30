@@ -1,0 +1,23 @@
+// A Gradle build of its own, and the third in this repository. See PORTING.md section 3.5 for
+// why the trees cannot be merged:
+//
+//   root        Gradle 4.10.3 on JDK 8   -- ForgeGradle 2.3 needs both        (1.12.2)
+//   modern/     Gradle 8 on JDK 17/21    -- ModDevGradle, Loom                (1.16 -> 1.21)
+//   legacy-1.7/ Gradle 8 on JDK 17       -- RetroFuturaGradle, targeting Java 8
+//
+// 1.7.10 predates Mojang mappings by seven years, so it cannot join `modern/` (section 3.2). It
+// cannot join the root build either: RetroFuturaGradle needs a modern Gradle, and ForgeGradle
+// 2.3 refuses one.
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        // RetroFuturaGradle is maintained by the GT: New Horizons team and published here
+        // rather than on the plugin portal.
+        maven {
+            name = 'GTNewHorizons'
+            url = 'https://nexus.gtnewhorizons.com/repository/public/'
+        }
+    }
+}
+
+rootProject.name = 'actuallyplayed'

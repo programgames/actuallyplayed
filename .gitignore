@@ -28,3 +28,4 @@ out/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
+legacy-1.7/run/
