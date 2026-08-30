@@ -135,14 +135,38 @@ nothing else. There is still exactly one copy of the source; it is simply compil
 `core`'s tests stay in the 1.12 build. They are version-agnostic and nothing is gained by
 running them twice.
 
-### 3.6 MultiLoader first, Stonecutter when the second version lands
+### 3.6 What 1.21.1 actually costs, measured
+
+Before wiring anything, the whole of `common` and `core` was compiled against Minecraft 1.21.1
+under Mojang mappings, and the compiler was left to say what breaks. **One line does:**
+
+```java
+renderBackground(graphics)                              // 1.20.1
+renderBackground(graphics, mouseX, mouseY, partialTick) // 1.21.1
+```
+
+Nothing else. Not the target resolution, not the input polling, not the screen, and none of
+`core`. That single line is the entire version-specific surface between the two, and it lands
+exactly where §4.2 predicted it would — in the draw loop, the only place a version break was
+expected to reach.
+
+It also sizes the tool: a preprocessor earns its place for one line only because that line will
+be joined by others at 1.21.5, where the render pipeline was rewritten.
+
+> ⚠️ **Gradle itself must run on JDK 21 for 1.21.1, not merely target it.** Loom refuses with
+> `Minecraft 1.21.1 requires Java 21 but Gradle is using 17` — a toolchain declaration is not
+> enough, because the Minecraft setup runs inside the Gradle process. Gradle's auto-provisioned
+> Temurin 21 satisfies this without anything being installed on the machine; older targets keep
+> compiling against their own toolchain regardless of what Gradle runs on.
+
+### 3.7 MultiLoader first, Stonecutter when the second version lands
 
 Both are unfamiliar toolchains. Standing them up together means debugging two at once with
 nothing working to compare against, so `modern/` starts as **MultiLoader only, at 1.20.1**,
 and Stonecutter arrives with the second Minecraft version — which is when it first earns its
 keep. Until then a single version needs no preprocessor.
 
-### 3.7 Target layout
+### 3.8 Target layout
 
 ```
 actually-played/
@@ -155,17 +179,18 @@ actually-played/
    └─ fabric/                entry point + loader glue
 ```
 
-### 3.8 Toolchains on this machine
+### 3.9 Toolchains on this machine
 
 | | Installed | Needed by |
 |---|---|---|
 | JDK 8 | `C:\Program Files\Eclipse Adoptium\jdk-8.0.472.8-hotspot` | 1.12.2 |
 | JDK 17 | `C:\Program Files\Java\jdk-17` | 1.20.1, 1.18.2, 1.19.2 |
-| JDK 21 | **absent** | **1.21.x — blocks phase 3** |
+| JDK 21 | auto-provisioned by Gradle | **1.21.x, and Gradle itself must run on it** |
 | JDK 25 | `C:\Program Files\Java\java25` | can run Gradle, cannot target 21 on its own |
 
-JDK 21 is missing and 1.21.1 cannot be built without it. Either install it, or let Gradle's
-toolchain auto-provisioning fetch it. **Open question for the user, raised before phase 3.**
+Resolved 2026-08-30: Gradle's toolchain auto-provisioning had already fetched Temurin 21, so
+nothing needs installing. Note the constraint in the box above — for 1.21.1 the Gradle process
+itself has to be that JDK, which is a stronger requirement than a toolchain declaration.
 
 ---
 
