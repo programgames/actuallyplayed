@@ -95,8 +95,16 @@ processResources {
 // The 1.13+ JSON translations are irrelevant here: 1.7.10 reads the same `.lang` format 1.12
 // does, so the files are taken from the 1.12 module unchanged. Copied with `into` rather than
 // added as a source directory, which would flatten `assets/` away.
+// Minecraft renamed its locale files at 1.11: `en_US.lang` before, `en_us.lang` after. A file
+// under the wrong name is not rejected, it is simply never read - which showed in game as every
+// key rendering as its own name. The 1.12 sources are the reference; they are renamed on the
+// way in rather than duplicated.
 processResources {
     from(rootProject.file('../forge-1.12/src/main/resources/assets')) {
         into 'assets'
+        rename { String name ->
+            def match = name =~ /^([a-z]{2,3})_([a-z0-9]{2,4})\.lang$/
+            match ? "${match[0][1]}_${match[0][2].toUpperCase()}.lang" : name
+        }
     }
 }

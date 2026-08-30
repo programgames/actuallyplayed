@@ -545,8 +545,12 @@ public final class PlaytimeClientHandler {
             }
         } catch (IOException e) {
             logger.error("Could not save playtime data while shutting down", e);
-        } catch (RuntimeException e) {
-            logger.error("Unexpected failure while shutting down playtime tracking", e);
+        } catch (Throwable t) {
+            // Throwable, not RuntimeException. This runs on a shutdown hook, where the class
+            // loader may already refuse to load anything new: a NoClassDefFoundError here is
+            // ordinary, and letting it escape turns a failed save into an unexplained
+            // "Exception in thread" with no stack trace, which is what 1.7.10 showed.
+            logger.error("Unexpected failure while shutting down playtime tracking", t);
         }
     }
 

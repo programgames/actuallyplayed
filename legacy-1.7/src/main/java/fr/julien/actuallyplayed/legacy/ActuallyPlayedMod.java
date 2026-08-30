@@ -2,6 +2,7 @@ package fr.julien.actuallyplayed.legacy;
 
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.common.MinecraftForge;
 import fr.julien.actuallyplayed.core.PlaytimeTracker;
@@ -69,7 +70,11 @@ public final class ActuallyPlayedMod {
 
         final PlaytimeClientHandler handler = new PlaytimeClientHandler(
                 tracker, Minecraft.getMinecraft(), logger, settings.isDebugLogging());
-        MinecraftForge.EVENT_BUS.register(handler);
+        // Two buses, and putting a handler on the wrong one fails silently. On 1.7.10 the tick
+        // and input events live on FML's bus, while GUI events live on Forge's. Registering
+        // everything on Forge's left the button working and the counter never ticking, with no
+        // error anywhere.
+        FMLCommonHandler.instance().bus().register(handler);
         MinecraftForge.EVENT_BUS.register(new StatsGuiHandler(tracker));
 
         // 1.7.10 has no reliable "game is closing" event, and it can exit through System.exit.

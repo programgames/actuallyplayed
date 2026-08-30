@@ -230,6 +230,19 @@ What the port cost, beyond renames like `theWorld` for `world`:
   substituting the version into source; RFG exposes none, and generating the file depends on no
   plugin feature at all.
 
+> ⚠️ **1.7.10 has two event buses, and the wrong one fails silently.** Tick and input events
+> live on FML's bus, GUI events on Forge's. Registering everything on Forge's bus — which is
+> what 1.12 does — left the button working, the screen opening, and the counter never receiving
+> a single tick, so it reported "no session in progress" from inside a world. Nothing was logged
+> anywhere. `FMLCommonHandler.instance().bus()` takes the activity handler,
+> `MinecraftForge.EVENT_BUS` the GUI one.
+
+> ⚠️ **Locale files were renamed at 1.11**: `en_US.lang` before, `en_us.lang` after. The 27
+> files carry the modern form, so 1.7.10 read none of them and every key rendered as its own
+> name. The build renames them on the way in rather than duplicating them. Same shape as the
+> trap in `CLAUDE.md` §13: a locale file under a name the game does not expect is not rejected,
+> it is simply never read.
+
 > ⚠️ **One obfuscated name, deliberately.** `CLAUDE.md` §6 forbids `func_xxxxx_x` names, and
 > rightly so on 1.12 where the mappings are near complete. On 1.7.10, the getter for the current
 > `ServerData` simply has no mapped name — MCP left it as `func_147104_D`, and the field behind
