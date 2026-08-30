@@ -5,10 +5,14 @@ import fr.julien.actuallyplayed.core.PlaytimeTracker;
 import fr.julien.actuallyplayed.core.engine.SessionSnapshot;
 import fr.julien.actuallyplayed.core.model.PlayerPlaytime;
 import fr.julien.actuallyplayed.core.screen.RecordedTotals;
+import fr.julien.actuallyplayed.core.screen.ScreenPainter;
+import fr.julien.actuallyplayed.core.screen.StatsScreenRenderer;
+import fr.julien.actuallyplayed.core.screen.Translator;
 import fr.julien.actuallyplayed.core.screen.StatsScreenModel;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TranslatableComponent;
@@ -32,7 +36,7 @@ import java.util.Optional;
  * Its 1.20 twin declares the same six primitives against the newer API and is the same length.
  * Before the split, the whole screen would have been duplicated per version.
  */
-public final class PlaytimeStatsScreen extends Screen implements ScreenPainter {
+public final class PlaytimeStatsScreen extends Screen implements ScreenPainter, Translator {
 
     private static final Logger LOGGER = LogManager.getLogger("actuallyplayed");
 
@@ -107,7 +111,7 @@ public final class PlaytimeStatsScreen extends Screen implements ScreenPainter {
                     ? StatsScreenModel.of(snapshot.get(), recorded, zone)
                     : StatsScreenModel.withoutSession();
 
-            StatsScreenRenderer.render(model, this, width / 2, top,
+            StatsScreenRenderer.render(model, this, this, width / 2, top,
                     Math.min(width - 20, StatsScreenModel.RULE_HALF_WIDTH * 2));
 
             // Drawn by hand rather than through super.render(), to keep this file the same
@@ -124,6 +128,13 @@ public final class PlaytimeStatsScreen extends Screen implements ScreenPainter {
         } finally {
             this.poses = null;
         }
+    }
+
+    // --- Translator ------------------------------------------------------------------------
+
+    @Override
+    public String translate(String key, String... args) {
+        return I18n.get(key, (Object[]) args);
     }
 
     // --- ScreenPainter ---------------------------------------------------------------------

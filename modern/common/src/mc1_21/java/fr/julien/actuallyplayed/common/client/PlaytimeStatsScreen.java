@@ -5,10 +5,14 @@ import fr.julien.actuallyplayed.core.PlaytimeTracker;
 import fr.julien.actuallyplayed.core.engine.SessionSnapshot;
 import fr.julien.actuallyplayed.core.model.PlayerPlaytime;
 import fr.julien.actuallyplayed.core.screen.RecordedTotals;
+import fr.julien.actuallyplayed.core.screen.ScreenPainter;
+import fr.julien.actuallyplayed.core.screen.StatsScreenRenderer;
+import fr.julien.actuallyplayed.core.screen.Translator;
 import fr.julien.actuallyplayed.core.screen.StatsScreenModel;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.apache.logging.log4j.LogManager;
@@ -31,7 +35,7 @@ import java.util.Optional;
  * {@link ScreenBackground}. It is kept separate because 1.21.5 rewrote the render pipeline, so
  * this is where that break will land.
  */
-public final class PlaytimeStatsScreen extends Screen implements ScreenPainter {
+public final class PlaytimeStatsScreen extends Screen implements ScreenPainter, Translator {
 
     private static final Logger LOGGER = LogManager.getLogger("actuallyplayed");
 
@@ -108,7 +112,7 @@ public final class PlaytimeStatsScreen extends Screen implements ScreenPainter {
                     ? StatsScreenModel.of(snapshot.get(), recorded, zone)
                     : StatsScreenModel.withoutSession();
 
-            StatsScreenRenderer.render(model, this, width / 2, top,
+            StatsScreenRenderer.render(model, this, this, width / 2, top,
                     Math.min(width - 20, StatsScreenModel.RULE_HALF_WIDTH * 2));
 
             // The widget is drawn by hand rather than through super.render(): on 1.21 that
@@ -125,6 +129,13 @@ public final class PlaytimeStatsScreen extends Screen implements ScreenPainter {
         } finally {
             this.graphics = null;
         }
+    }
+
+    // --- Translator ------------------------------------------------------------------------
+
+    @Override
+    public String translate(String key, String... args) {
+        return I18n.get(key, (Object[]) args);
     }
 
     // --- ScreenPainter ---------------------------------------------------------------------

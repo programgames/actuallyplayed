@@ -1,10 +1,5 @@
-package fr.julien.actuallyplayed.common.client;
+package fr.julien.actuallyplayed.core.screen;
 
-import fr.julien.actuallyplayed.core.screen.ScreenLine;
-import fr.julien.actuallyplayed.core.screen.StatsScreenModel;
-import fr.julien.actuallyplayed.core.screen.TextSpan;
-import fr.julien.actuallyplayed.core.screen.TextStyle;
-import net.minecraft.client.resources.language.I18n;
 
 /**
  * Draws a {@link StatsScreenModel} through a {@link ScreenPainter}, once for every Minecraft
@@ -31,16 +26,17 @@ public final class StatsScreenRenderer {
     }
 
     /**
-     * @param model    what to draw
-     * @param painter  how to draw it
+     * @param model      what to draw
+     * @param painter    how to draw it
+     * @param translator how to resolve a translation key
      * @param centreX  horizontal centre of the screen
      * @param top      vertical offset of the content block
      * @param maxWidth widest a truncated row may be
      */
     public static void render(StatsScreenModel model, ScreenPainter painter,
-                              int centreX, int top, int maxWidth) {
+                              Translator translator, int centreX, int top, int maxWidth) {
         for (ScreenLine line : model.getLines()) {
-            String text = resolve(line);
+            String text = resolve(line, translator);
             int x = centreX + line.getX();
             int y = top + line.getY();
 
@@ -74,12 +70,12 @@ public final class StatsScreenRenderer {
         painter.horizontalLine(centreX + gap, centreX + half, y + 3, RULE_COLOUR);
     }
 
-    private static String resolve(ScreenLine line) {
+    private static String resolve(ScreenLine line, Translator translator) {
         StringBuilder text = new StringBuilder();
         for (TextSpan span : line.getSpans()) {
             text.append(code(span.getStyle()));
             text.append(span.isTranslated()
-                    ? I18n.get(span.getKey(), (Object[]) span.getArgs())
+                    ? translator.translate(span.getKey(), span.getArgs())
                     : span.getText());
         }
         return text.toString();

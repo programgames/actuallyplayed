@@ -1,4 +1,4 @@
-package fr.julien.actuallyplayed.common.client;
+package fr.julien.actuallyplayed.core.screen;
 
 /**
  * The handful of drawing primitives the statistics screen needs, named once so the layout can
@@ -12,7 +12,7 @@ package fr.julien.actuallyplayed.common.client;
  * be written per version.
  * <p>
  * What does <em>not</em> have to differ is the loop over the rows: reading a
- * {@link fr.julien.actuallyplayed.core.screen.StatsScreenModel}, trimming an over-long label,
+ * {@link StatsScreenModel}, trimming an over-long label,
  * anchoring left or right, drawing a section rule. That is
  * {@link StatsScreenRenderer}, written once against this interface, and it keeps each version's
  * screen down to declaring the primitives rather than repeating the layout.

@@ -194,7 +194,27 @@ Gradle plugins. `settings.gradle` includes only the module the selected version 
 `common` applies the matching ModDevGradle variant. A `plugins` block cannot be conditional, so
 the modules use `apply plugin:`.
 
-### 3.8 Logging goes through log4j, not slf4j
+### 3.8 The screen's layout is walked once, in `core`
+
+Five Minecraft versions each carried their own copy of the same three hundred lines: reading
+the model, resolving translation keys, trimming an over-long label, anchoring rows, drawing
+section rules. None of that differs between versions, and five copies free to drift is a bug
+waiting to happen — it is also five copies that only a running game could check.
+
+`core` now walks it, through two injected interfaces:
+
+- **`ScreenPainter`** — the six primitives Minecraft genuinely spells differently: draw left,
+  right, centred, a horizontal rule, measure a string, trim one.
+- **`Translator`** — a key lookup. `core` holds the keys but cannot resolve them: the class
+  that reads the language files has moved package more than once. Injected for the same reason
+  `Clock` is.
+
+Each version's screen is left declaring those seven methods, which is a page. The walk is under
+unit test for the first time — eight tests over a recording painter, checking that offsets
+resolve against the centre, that a rule runs outwards from its heading without passing under
+it, that only the rows asking to be trimmed are, and that no row is drawn without a colour code.
+
+### 3.9 Logging goes through log4j, not slf4j
 
 Measured while sizing 1.16.5, and it removes a version difference rather than managing one.
 
@@ -207,7 +227,7 @@ targets, 1.7.10 through 1.21 — verified by compiling `common` against 1.16.5, 
 The whole 1.16.5 logging problem therefore disappears by picking the library Minecraft has
 always shipped, instead of the newer one it happens to prefer today.
 
-### 3.9 1.7.10 is a third Gradle build, on RetroFuturaGradle
+### 3.10 1.7.10 is a third Gradle build, on RetroFuturaGradle
 
 **Verified in game on 2026-08-31**: the mod loads, the session opens, the translations resolve
 and the stats screen renders. Getting there took three fixes, two of them 1.7.10-specific and
@@ -254,7 +274,7 @@ What the port cost, beyond renames like `theWorld` for `world`:
 > the address out of the network handler and losing the label the player gave the server in
 > their list. It is used once, in `TargetResolver`, with the reason written beside it.
 
-### 3.10 1.16.5 needs a third toolchain — measured, then blocked
+### 3.11 1.16.5 needs a third toolchain — measured, then blocked
 
 The Java side is nearly free. Compiling the whole adapter against 1.16.5 leaves **only the draw
 loop**: `GuiGraphics` does not exist before 1.20, where 1.16 passes a `PoseStack` and draws
@@ -305,7 +325,7 @@ directories keep their own version's language level. That is the real constraint
 on by supporting 1.16 — worth naming, because it applies to every line written in `common` from
 here on.
 
-### 3.11 Target layout
+### 3.12 Target layout
 
 ```
 actually-played/
@@ -318,7 +338,7 @@ actually-played/
    └─ fabric/                entry point + loader glue
 ```
 
-### 3.12 Toolchains on this machine
+### 3.13 Toolchains on this machine
 
 | | Installed | Needed by |
 |---|---|---|
