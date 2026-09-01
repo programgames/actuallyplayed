@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=Thời gian chơi
+actuallyplayed.gui.button.report=Báo lỗi hoặc góp ý
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=Không có phiên nào đang diễn ra
 actuallyplayed.gui.status=Trạng thái:

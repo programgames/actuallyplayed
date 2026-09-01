@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=Herní čas
+actuallyplayed.gui.button.report=Nahlásit chybu nebo nápad
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=Žádná probíhající relace
 actuallyplayed.gui.status=Stav:

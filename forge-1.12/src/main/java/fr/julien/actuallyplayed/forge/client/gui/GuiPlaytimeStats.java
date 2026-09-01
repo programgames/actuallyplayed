@@ -1,6 +1,7 @@
 package fr.julien.actuallyplayed.forge.client.gui;
 
 import fr.julien.actuallyplayed.core.PlaytimeTracker;
+import fr.julien.actuallyplayed.core.ProjectLinks;
 import fr.julien.actuallyplayed.core.engine.SessionSnapshot;
 import fr.julien.actuallyplayed.core.model.PlayerPlaytime;
 import fr.julien.actuallyplayed.core.screen.RecordedTotals;
@@ -8,8 +9,10 @@ import fr.julien.actuallyplayed.core.screen.ScreenPainter;
 import fr.julien.actuallyplayed.core.screen.StatsScreenModel;
 import fr.julien.actuallyplayed.core.screen.StatsScreenRenderer;
 import fr.julien.actuallyplayed.core.screen.Translator;
+import fr.julien.actuallyplayed.core.util.BrowserLauncher;
 import fr.julien.actuallyplayed.forge.bridge.TargetResolver;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiConfirmOpenLink;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 import org.apache.logging.log4j.LogManager;
@@ -42,6 +45,19 @@ public class GuiPlaytimeStats extends GuiScreen implements ScreenPainter, Transl
     private static final Logger LOGGER = LogManager.getLogger("actuallyplayed");
 
     private static final int BUTTON_DONE = 200;
+    private static final int BUTTON_REPORT = 201;
+
+    /**
+     * The report button is twice the width of Done, and the pair together is as wide as Done used
+     * to be on its own.
+     * <p>
+     * Not two equal halves: "Report a bug or an idea" is twenty-three characters in English and
+     * grows by a third in German, Russian and Greek, while "Done" is short in every language the
+     * mod ships. Splitting the row evenly would fit the word that does not need the room and clip
+     * the one that does.
+     */
+    private static final int REPORT_WIDTH = 200;
+    private static final int DONE_WIDTH = 100;
 
     private final GuiScreen parent;
     private final PlaytimeTracker tracker;
@@ -72,8 +88,11 @@ public class GuiPlaytimeStats extends GuiScreen implements ScreenPainter, Transl
             // Centred in the space above the Done button, but never crowding the top edge on a
             // short screen.
             top = Math.max(6, (height - 36 - StatsScreenModel.CONTENT_HEIGHT) / 2);
-            buttonList.add(new GuiButton(BUTTON_DONE, width / 2 - 100, height - 28,
-                    I18n.format("gui.done")));
+            int rowLeft = width / 2 - (REPORT_WIDTH + 4 + DONE_WIDTH) / 2;
+            buttonList.add(new GuiButton(BUTTON_REPORT, rowLeft, height - 28, REPORT_WIDTH, 20,
+                    I18n.format("actuallyplayed.gui.button.report")));
+            buttonList.add(new GuiButton(BUTTON_DONE, rowLeft + REPORT_WIDTH + 4, height - 28,
+                    DONE_WIDTH, 20, I18n.format("gui.done")));
 
             PlayerPlaytime player =
                     tracker.getData().find(new TargetResolver(mc).resolvePlayerId());
@@ -106,7 +125,35 @@ public class GuiPlaytimeStats extends GuiScreen implements ScreenPainter, Transl
     protected void actionPerformed(GuiButton button) throws IOException {
         if (button.id == BUTTON_DONE) {
             mc.displayGuiScreen(parent);
+        } else if (button.id == BUTTON_REPORT) {
+            // Never straight to the browser. This is the screen vanilla shows for a link in chat,
+            // so the player recognises it, it prints the address before anything opens, and it
+            // offers "Copy to clipboard" -- which is the only way out when no browser can be
+            // reached, and there are machines where none can.
+            mc.displayGuiScreen(
+                    new GuiConfirmOpenLink(this, ProjectLinks.ISSUES, BUTTON_REPORT, false));
         }
+    }
+
+    /**
+     * Answers the confirmation screen above.
+     * <p>
+     * The opening is not delegated to {@code super}: vanilla's own handler keys on its private
+     * {@code clickedLinkURI} field, which a mod cannot set, so calling it would hand the browser
+     * a null URI and log "Couldn't open link" for a link that is perfectly fine.
+     */
+    @Override
+    public void confirmClicked(boolean result, int id) {
+        if (id != BUTTON_REPORT) {
+            super.confirmClicked(result, id);
+            return;
+        }
+        if (result && !BrowserLauncher.open(ProjectLinks.ISSUES)) {
+            // The player asked for the browser and did not get it. Say so where a bug report can
+            // find it, and leave them on the confirmation screen's copy button.
+            LOGGER.warn("Actually Played could not open {} in a browser.", ProjectLinks.ISSUES);
+        }
+        mc.displayGuiScreen(this);
     }
 
     @Override

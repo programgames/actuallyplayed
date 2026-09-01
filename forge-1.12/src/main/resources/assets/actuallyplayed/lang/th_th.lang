@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=เวลาเล่น
+actuallyplayed.gui.button.report=รายงานบั๊กหรือไอเดีย
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=ไม่มีเซสชันที่กำลังดำเนินอยู่
 actuallyplayed.gui.status=สถานะ:

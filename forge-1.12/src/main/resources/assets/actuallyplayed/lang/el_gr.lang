@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=Χρόνος παιχνιδιού
+actuallyplayed.gui.button.report=Αναφορά σφάλματος ή ιδέας
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=Καμία συνεδρία σε εξέλιξη
 actuallyplayed.gui.status=Κατάσταση:

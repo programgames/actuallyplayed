@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=플레이 시간
+actuallyplayed.gui.button.report=버그나 아이디어 제보
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=진행 중인 세션 없음
 actuallyplayed.gui.status=상태:

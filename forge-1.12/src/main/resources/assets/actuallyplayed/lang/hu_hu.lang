@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=Játékidő
+actuallyplayed.gui.button.report=Hiba vagy ötlet jelentése
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=Nincs folyamatban lévő munkamenet
 actuallyplayed.gui.status=Állapot:

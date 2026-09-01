@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=Speltid
+actuallyplayed.gui.button.report=Rapportera bugg eller idé
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=Ingen pågående session
 actuallyplayed.gui.status=Status:

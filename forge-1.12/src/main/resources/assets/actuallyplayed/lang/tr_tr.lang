@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=Oynama süresi
+actuallyplayed.gui.button.report=Hata veya fikir bildir
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=Devam eden oturum yok
 actuallyplayed.gui.status=Durum:

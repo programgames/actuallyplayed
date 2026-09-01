@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=Peliaika
+actuallyplayed.gui.button.report=Ilmoita bugista tai ideasta
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=Ei käynnissä olevaa istuntoa
 actuallyplayed.gui.status=Tila:

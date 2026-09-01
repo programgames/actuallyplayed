@@ -96,6 +96,10 @@ L'écran affiche la destination où tu te trouves, et elle seule :
 
 Chaque serveur et chaque monde ont leur propre historique. Il t'attend quand tu y reviens.
 
+**Signaler un bug ou une idée** en bas de l'écran ouvre le suivi des tickets, via la même
+confirmation que Minecraft affiche pour un lien dans le chat — avec son bouton
+« Copier dans le presse-papiers » pour les machines où aucun navigateur ne s'ouvre.
+
 **`/played reset`** (1.12.2) remet à zéro la destination où tu te trouves, après confirmation.
 Elle ne touche jamais aux autres. Sur toutes les versions, supprimer le fichier de données jeu
 fermé efface tout.

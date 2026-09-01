@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=Spielzeit
+actuallyplayed.gui.button.report=Fehler oder Idee melden
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=Keine laufende Sitzung
 actuallyplayed.gui.status=Status:

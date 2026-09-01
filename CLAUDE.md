@@ -375,6 +375,17 @@ Built **MVP first, then iterations**, with in-game validation at each step.
 - **Never cache a failed target resolution.** `resolveTarget()` caches on the world instance;
   caching a `null` result would pin it for the entire session and silence the mod with no
   error anywhere. Only successful resolutions are cached.
+- **Minecraft's own link opener is out of reach on the two legacy versions.**
+  `GuiScreen.openWebLink(URI)` is **private** on 1.12.2, and 1.7.10 has no equivalent at all:
+  its `GuiScreen.confirmClicked` is an empty method. Worse, vanilla's 1.12.2
+  `confirmClicked` keys on a private `clickedLinkURI` field, so delegating to `super` hands
+  the browser a null URI and logs `Couldn't open link` for an address that is perfectly
+  valid. `core/util/BrowserLauncher` therefore carries vanilla's own six lines. 1.16 and
+  later are unaffected: `Util.getPlatform().openUri` is public there.
+- **On 1.7.10, `GuiScreen` does not implement `GuiYesNoCallback`** — it merely happens to
+  carry a `confirmClicked` method of the right shape. A screen passing `this` to
+  `GuiConfirmOpenLink` must declare the interface itself, or it does not compile. Its 1.12.2
+  twin needs no such thing, where `GuiScreen implements GuiYesNoCallback`.
 - **`gradlew` must stay mode `100755` in git.** It was committed `100644`, which gives every
   Linux and macOS contributor `Permission denied` on clone. The CI used to paper over it with
   a `chmod` step; that step has been removed so a regression fails the build instead of being
@@ -464,7 +475,22 @@ lowered to 60 s:
 > The accounting never invented or lost time during the flapping; only the state was
 > unstable.
 
-Every item on this list is now verified in game.
+### Still to check in game (added 2026-09-01)
+
+The report button was written and compiled against all five versions, never clicked:
+
+- [ ] The button opens vanilla's link confirmation screen, and the address it prints is the
+      issue tracker
+- [ ] "Copy to clipboard" puts the address on the clipboard, on a version where the browser
+      does open and on one where it does not
+- [ ] Cancel returns to the statistics screen, not to the game
+- [ ] The row still fits at GUI scale 1 on a 320-wide window, in German and in Russian, which
+      are the widest renderings of the label
+- [ ] Clicking through to the browser costs the focus and therefore turns the session AFK,
+      with the rollback that goes with it. This is the wanted behaviour, not a defect: the
+      player has left. It is on the list because it should be seen once rather than assumed.
+
+Every other item on this list is verified in game.
 
 Realms is absent from this list on purpose: not tracking it is a deliberate choice (§2.4).
 
@@ -488,6 +514,14 @@ Realms is absent from this list on purpose: not tracking it is a deliberate choi
   spot a destination where the player is mostly AFK.
 - **Dates are year-first** (`2026-08-29`) rather than in a locale-specific order:
   `08/09/2026` means two different days depending on the reader.
+- **The bottom row is asymmetric on purpose**: 200 px for "Report a bug or an idea", 100 px
+  for Done, together the 200 px Done used to occupy alone. An even split would fit the word
+  that does not need the room and clip the one that does — the label grows by a third in
+  German, Russian and Greek, while "Done" is short in all 27 languages.
+- **The report button never opens a browser directly.** It goes through the confirmation
+  screen vanilla uses for a link in chat, on every version: the player recognises it, the
+  address is printed before anything opens, and it offers "Copy to clipboard", which is the
+  only way through on a machine where no browser can be reached.
 - **Config editable in game** through `IModGuiFactory` (the "Config" button in the mod list).
   `ForgeConfig` keeps its `Configuration` instance so the screen edits the same file, and
   each edit produces a **fresh immutable `PlaytimeConfig`** that the tracker publishes in one
@@ -690,7 +724,7 @@ is abandoned and less capable overall. It had one thing right that we had wrong.
   this file.
 - **Translation files are the sole exception**, because that is their purpose: the
   `.lang` files and `README.fr.md`.
-- **`.lang` parity must be maintained** — 37 keys today, none orphaned, none missing, in
+- **`.lang` parity must be maintained** — 38 keys today, none orphaned, none missing, in
   every locale. `en_us.lang` is the reference: add a key there first, then everywhere else.
   Minecraft falls back to `en_us` for a missing key, so a gap is silent, not fatal.
 - **27 locales are shipped** (2026-08-30): `en_us`, `fr_fr`, `de_de`, `es_es`, `es_mx`,

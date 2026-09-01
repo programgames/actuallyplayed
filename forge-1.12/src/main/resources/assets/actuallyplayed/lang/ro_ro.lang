@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=Timp de joc
+actuallyplayed.gui.button.report=Raportează o eroare sau o idee
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=Nicio sesiune în curs
 actuallyplayed.gui.status=Stare:

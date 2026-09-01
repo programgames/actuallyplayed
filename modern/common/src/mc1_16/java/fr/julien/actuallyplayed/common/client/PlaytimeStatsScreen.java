@@ -2,6 +2,7 @@ package fr.julien.actuallyplayed.common.client;
 
 import fr.julien.actuallyplayed.common.bridge.TargetResolver;
 import fr.julien.actuallyplayed.core.PlaytimeTracker;
+import fr.julien.actuallyplayed.core.ProjectLinks;
 import fr.julien.actuallyplayed.core.engine.SessionSnapshot;
 import fr.julien.actuallyplayed.core.model.PlayerPlaytime;
 import fr.julien.actuallyplayed.core.screen.RecordedTotals;
@@ -10,8 +11,10 @@ import fr.julien.actuallyplayed.core.screen.StatsScreenRenderer;
 import fr.julien.actuallyplayed.core.screen.Translator;
 import fr.julien.actuallyplayed.core.screen.StatsScreenModel;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.Util;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
@@ -40,6 +43,18 @@ public final class PlaytimeStatsScreen extends Screen implements ScreenPainter, 
 
     private static final Logger LOGGER = LogManager.getLogger("actuallyplayed");
 
+    /**
+     * The report button is twice the width of Done, and the pair together is as wide as Done used
+     * to be on its own.
+     * <p>
+     * Not two equal halves: "Report a bug or an idea" is twenty-three characters in English and
+     * grows by a third in German, Russian and Greek, while "Done" is short in every language the
+     * mod ships. Splitting the row evenly would fit the word that does not need the room and clip
+     * the one that does.
+     */
+    private static final int REPORT_WIDTH = 200;
+    private static final int DONE_WIDTH = 100;
+
     private final Screen parent;
     private final PlaytimeTracker tracker;
     private final ZoneId zone = ZoneId.systemDefault();
@@ -53,6 +68,9 @@ public final class PlaytimeStatsScreen extends Screen implements ScreenPainter, 
      * {@code addRenderableWidget} so that clicks reach it.
      */
     private Button done;
+
+    /** Drawn by hand beside {@link #done}, for the same reason. */
+    private Button report;
 
     /** Set for the duration of one render pass, so the painter methods can reach it. */
     private PoseStack poses;
@@ -78,7 +96,11 @@ public final class PlaytimeStatsScreen extends Screen implements ScreenPainter, 
         // short screen.
         top = Math.max(6, (height - 36 - StatsScreenModel.CONTENT_HEIGHT) / 2);
 
-        done = addButton(new Button(width / 2 - 100, height - 28, 200, 20,
+        int rowLeft = width / 2 - (REPORT_WIDTH + 4 + DONE_WIDTH) / 2;
+        report = addButton(new Button(rowLeft, height - 28, REPORT_WIDTH, 20,
+                new TranslatableComponent("actuallyplayed.gui.button.report"),
+                button -> openIssueTracker()));
+        done = addButton(new Button(rowLeft + REPORT_WIDTH + 4, height - 28, DONE_WIDTH, 20,
                 new TranslatableComponent("gui.done"), button -> onClose()));
 
         PlayerPlaytime player = tracker.getData().find(new TargetResolver(minecraft).resolvePlayerId());
@@ -116,6 +138,9 @@ public final class PlaytimeStatsScreen extends Screen implements ScreenPainter, 
 
             // Drawn by hand rather than through super.render(), to keep this file the same
             // shape as its 1.20 twin, where calling it would redraw the background on 1.21.
+            if (report != null) {
+                report.render(poseStack, mouseX, mouseY, partialTick);
+            }
             if (done != null) {
                 done.render(poseStack, mouseX, mouseY, partialTick);
             }
@@ -128,6 +153,23 @@ public final class PlaytimeStatsScreen extends Screen implements ScreenPainter, 
         } finally {
             this.poses = null;
         }
+    }
+
+    /**
+     * Sends the player to the issue tracker, through the confirmation screen vanilla uses for a
+     * link in chat.
+     * <p>
+     * Never straight to the browser: the player recognises that screen, it prints the address
+     * before anything opens, and it offers "Copy to clipboard" -- the only way out on a machine
+     * where no browser can be reached, and such machines exist.
+     */
+    private void openIssueTracker() {
+        minecraft.setScreen(new ConfirmLinkScreen(confirmed -> {
+            if (confirmed) {
+                Util.getPlatform().openUri(ProjectLinks.ISSUES);
+            }
+            minecraft.setScreen(this);
+        }, ProjectLinks.ISSUES, false));
     }
 
     // --- Translator ------------------------------------------------------------------------

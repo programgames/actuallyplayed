@@ -1,4 +1,5 @@
 actuallyplayed.gui.button=プレイ時間
+actuallyplayed.gui.button.report=不具合や要望を報告
 actuallyplayed.gui.title=Actually Played
 actuallyplayed.gui.noSession=進行中のセッションはありません
 actuallyplayed.gui.status=状態:

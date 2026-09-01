@@ -94,6 +94,10 @@ The screen shows the destination you are in, and only that one:
 
 Every server and every world keeps its own history. It is waiting for you when you return.
 
+**Report a bug or an idea** at the bottom of the screen opens the issue tracker, through the
+same confirmation Minecraft shows for a link in chat -- with its "Copy to clipboard" button
+for the machines where no browser opens.
+
 **`/played reset`** (1.12.2) clears the destination you are on, after asking for confirmation.
 It never touches the others. On any version, deleting the data file with the game closed wipes
 everything.
