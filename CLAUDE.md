@@ -600,10 +600,15 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
   Minecraft version into a single GitHub release. **Revised 2026-08-30**: the tag used to carry
   the full version (`1.12.2-1.0.0`) so it would match the jar name exactly, and with one
   Minecraft version that worked. With three, no single tag can match five jars, so the rule
-  lost its premise. The release workflow checks the tag against `modVersion` in
-  `gradle.properties` **and** `mod_version` in `modern/gradle.properties`, which must agree —
-  one number describes the mod, whatever it is built for. The jars still report
-  `MCVERSION-MODVERSION`, which is what the update checker compares.
+  lost its premise. The release workflow checks the tag against **three** files, which must
+  all agree — one number describes the mod, whatever it is built for:
+  `modVersion` in `gradle.properties`, `modVersion` in `legacy-1.7/gradle.properties`, and
+  `mod_version` in `modern/gradle.properties`. The jars still report `MCVERSION-MODVERSION`,
+  which is what the update checker compares.
+  > This paragraph named only the first two until 2026-09-01, having never been updated when
+  > the 1.7.10 build arrived, and the 1.2.0 tag went out with `legacy-1.7` left behind. The
+  > workflow caught it and failed the release, which is what it is for — but a stale sentence
+  > here is what sent the tag out wrong in the first place.
 - **`update.json` at the repo root** drives Forge's "update available" marker. Two traps
   live here:
   - The `updateUrl` field of `mcmod.info` is **dead metadata** — FML only ever reads the
