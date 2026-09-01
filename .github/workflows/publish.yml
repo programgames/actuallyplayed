@@ -1,20 +1,28 @@
 # Uploads the jars of a published GitHub release to CurseForge.
 #
-# Deliberately a second workflow rather than a step of release.yml, and deliberately keyed on
-# `release: published` rather than on the tag.
+# Run by hand from the Actions tab, after the draft release has been published. Two clicks
+# rather than one, and the reason is a GitHub rule rather than a choice:
 #
-# release.yml stops at a draft on purpose: publishing is a decision, not a side effect of
-# pushing a tag (CLAUDE.md section 12). Pressing "Publish release" on GitHub is that decision,
-# and this workflow treats it as the trigger -- so the human judgement stays where it was, and
-# only the typing is automated. A tag-triggered upload would have quietly removed the
-# decision, since a file uploaded to CurseForge is public the moment it lands: there is no
-# draft there to take it back from.
+# **An event attributed to GITHUB_TOKEN never starts another workflow.** release.yml creates
+# the draft with that token, so the release stays attributed to github-actions[bot] even
+# after a human presses "Publish release" -- and `on: release: published` does not fire. This
+# workflow carried that trigger on its first day and sat silent through an actual
+# publication; the upload had to be dispatched by hand anyway. The trigger is gone rather
+# than kept as decoration, because a trigger that cannot fire is worse than none: it reads
+# like an automation that exists.
+#
+# Making it fire would mean creating the draft with a personal access token instead. That is
+# one more secret to store, rotate and lose, to save one click on a release that happens a
+# few times a year. Not worth it -- but written down here so the next reader knows the option
+# exists and why it was declined.
+#
+# The decision to publish stays human either way, which is the point of CLAUDE.md section 12:
+# a file uploaded to CurseForge is public the moment it lands, and there is no draft state
+# there to take it back from.
 
 name: Publish to CurseForge
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -97,7 +105,7 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          TAG: ${{ inputs.tag }}
         run: |
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           # The release body rather than CHANGELOG.md: it is the text a reader has already
@@ -123,7 +131,7 @@ jobs:
           loaders: ${{ matrix.loader }}
           java: ${{ matrix.java }}
           dependencies: ${{ matrix.dependencies }}
-          # Off: this workflow runs because a GitHub release was published, and publishing to
-          # the release that triggered it would be circular.
+          # Off: the GitHub release already exists -- this workflow reads its assets, it does
+          # not create one. Modrinth is not published to yet.
           github-token: ""
           modrinth-token: ""

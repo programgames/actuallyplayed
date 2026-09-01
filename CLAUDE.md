@@ -632,12 +632,23 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
   Gradle itself on 21 — then gathers the jars into one **draft** GitHub release. Draft on
   purpose: publishing is a decision, not a side effect of pushing a tag. `fail-fast` is on:
   a release missing a version quietly is worse than no release.
-- **`.github/workflows/publish.yml` uploads the jars to CurseForge**, and fires on
-  `release: published` rather than on the tag. Pressing "Publish release" on GitHub is the
-  decision; this only automates the typing that follows it. A tag-triggered upload would have
-  removed that decision, because **a file uploaded to CurseForge is public the moment it
-  lands** -- there is no draft state there to take it back from.
-  - It needs a **`CURSEFORGE_TOKEN`** repository secret, created at
+- **`.github/workflows/publish.yml` uploads the jars to CurseForge**, and is **run by hand**
+  from the Actions tab with the tag as its input, after the draft release has been published.
+  The decision to publish stays human, which matters more here than on GitHub: **a file
+  uploaded to CurseForge is public the moment it lands**, and there is no draft state there to
+  take it back from.
+  - **It was written to fire on `release: published`, and that trigger does not work.** An
+    event attributed to `GITHUB_TOKEN` never starts another workflow, and `release.yml`
+    creates the draft with that token -- so the release stays attributed to
+    `github-actions[bot]` even after a person presses "Publish release". Verified on
+    2026-09-01: the 1.2.0 release was published, no run started, and the upload had to be
+    dispatched by hand. The trigger has been removed rather than left in place, because one
+    that cannot fire reads like an automation that exists.
+  - Making it fire would mean creating the draft with a personal access token rather than
+    `GITHUB_TOKEN`. One more secret to store, rotate and lose, to save one click a few times a
+    year. Declined -- recorded here so the option is not rediscovered as if it were new.
+  - It needs a **`CURSEFORGE_TOKEN`** repository secret -- on the repository, not the
+    account, so a workflow in another repository cannot reach it -- created at
     `legacy.curseforge.com/account/api-tokens`. The first step fails with that instruction
     when the secret is absent, rather than failing somewhere in the upload.
   - The project id (`1675679`) is in the workflow's `env`, not a secret: it is printed on the
@@ -652,6 +663,12 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
   - The three Fabric files declare **`fabric-api(required)`**. Without it a player installs the
     jar and meets `requires any version of fabric-api, which is missing`, which reads as a
     broken mod rather than a missing library.
+  - **The first manual upload, of 1.1.0, silently dropped a file.** CurseForge listed seven
+    jars where the release had eight: `actuallyplayed-fabric-1.20.1-1.1.0.jar` was never
+    uploaded, so Fabric 1.20.1 players -- one of the most common combinations there is -- had
+    nothing to download for two days, with no error anywhere to say so. Eight files, each with
+    a game version, a loader and a Java version to retype, is exactly the work a matrix does
+    not get wrong. Found on 2026-09-01 while checking the first automated run.
 - **`gradlew clean` fails while Minecraft is running** — the running game holds
   `core/build/libs/core-*.jar` open. Close the game first. Not a build defect.
 
