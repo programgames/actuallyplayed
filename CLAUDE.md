@@ -475,20 +475,21 @@ lowered to 60 s:
 > The accounting never invented or lost time during the flapping; only the state was
 > unstable.
 
-### Still to check in game (added 2026-09-01)
+### The report button (2026-09-01)
 
-The report button was written and compiled against all five versions, never clicked:
+- [x] **Verified on 1.7.10**, the version where the link handling is most improvised: vanilla
+      has no opener of its own there, so this is the path that carries the AWT reflection and
+      the hand-declared `GuiYesNoCallback`. Button, confirmation screen, address and return
+      all behaved, and the 29-minute session logged no error of any kind.
+- [ ] The same, on a modern version. The code there is not a variation on this one: it opens
+      the link through `Util.getPlatform().openUri` and shares no line with the legacy path,
+      so 1.7.10 passing says nothing about 1.21.1.
+- [ ] The row at GUI scale 1 on a 320-wide window, in German and in Russian, the widest
+      renderings of the label.
 
-- [ ] The button opens vanilla's link confirmation screen, and the address it prints is the
-      issue tracker
-- [ ] "Copy to clipboard" puts the address on the clipboard, on a version where the browser
-      does open and on one where it does not
-- [ ] Cancel returns to the statistics screen, not to the game
-- [ ] The row still fits at GUI scale 1 on a 320-wide window, in German and in Russian, which
-      are the widest renderings of the label
-- [ ] Clicking through to the browser costs the focus and therefore turns the session AFK,
-      with the rollback that goes with it. This is the wanted behaviour, not a defect: the
-      player has left. It is on the list because it should be seen once rather than assumed.
+Clicking through to the browser costs the window focus and turns the session AFK, with the
+usual rollback. That is the wanted behaviour -- the player has left -- and it gets no special
+case. The 1.7.10 run showed it happening.
 
 Every other item on this list is verified in game.
 

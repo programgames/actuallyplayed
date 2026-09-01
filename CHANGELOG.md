@@ -2,12 +2,29 @@
 
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). One mod version
-covers every Minecraft version it is built for: **1.1.0** is released as one set of jars, and
-each jar reports `MCVERSION-MODVERSION` (`1.20.1-1.1.0`) because that is what Forge's update
+covers every Minecraft version it is built for: **1.2.0** is released as one set of jars, and
+each jar reports `MCVERSION-MODVERSION` (`1.20.1-1.2.0`) because that is what Forge's update
 checker compares.
 
 This file feeds three places at once — the GitHub release notes, the CurseForge file
 changelog, and the per-version strings in `update.json`. Write it once here.
+
+## [1.2.0] - 2026-09-01
+
+A way to tell me when something is wrong, from the screen where you noticed it.
+
+### Added
+
+- A **Report a bug or an idea** button at the bottom of the playtime screen, on every
+  Minecraft version. It opens the issue tracker through the same confirmation Minecraft
+  shows for a link in chat: the address is printed before anything opens, and the
+  "Copy to clipboard" button is there for the machines where no browser will start.
+- The button is translated in all 27 languages the mod ships.
+
+### Notes
+
+- Clicking through to the browser takes the focus away from the game, so the session turns
+  AFK with the usual rollback. That is deliberate: you have left.
 
 ## [1.1.0] — 2026-08-31
 
