@@ -632,6 +632,26 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
   Gradle itself on 21 — then gathers the jars into one **draft** GitHub release. Draft on
   purpose: publishing is a decision, not a side effect of pushing a tag. `fail-fast` is on:
   a release missing a version quietly is worse than no release.
+- **`.github/workflows/publish.yml` uploads the jars to CurseForge**, and fires on
+  `release: published` rather than on the tag. Pressing "Publish release" on GitHub is the
+  decision; this only automates the typing that follows it. A tag-triggered upload would have
+  removed that decision, because **a file uploaded to CurseForge is public the moment it
+  lands** -- there is no draft state there to take it back from.
+  - It needs a **`CURSEFORGE_TOKEN`** repository secret, created at
+    `legacy.curseforge.com/account/api-tokens`. The first step fails with that instruction
+    when the secret is absent, rather than failing somewhere in the upload.
+  - The project id (`1675679`) is in the workflow's `env`, not a secret: it is printed on the
+    public project page.
+  - **`fail-fast` is off here, the opposite of `release.yml`, and for the opposite reason.**
+    Building is atomic, so cancelling a doomed run costs nothing. Uploading is not: by the
+    time one file fails the earlier ones are already public, and cancelling the rest leaves
+    the project half-published. Every file is attempted and the summary says which failed.
+  - **The `java` column is the bytecode version, not the JDK that ran Gradle.** They differ on
+    1.16.5, built by a JDK 17 toolchain down to Java 8 because the game runs on 8 there.
+    CurseForge asks for it per file.
+  - The three Fabric files declare **`fabric-api(required)`**. Without it a player installs the
+    jar and meets `requires any version of fabric-api, which is missing`, which reads as a
+    broken mod rather than a missing library.
 - **`gradlew clean` fails while Minecraft is running** — the running game holds
   `core/build/libs/core-*.jar` open. Close the game first. Not a build defect.
 

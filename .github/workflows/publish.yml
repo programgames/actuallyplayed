@@ -1,0 +1,129 @@
+# Uploads the jars of a published GitHub release to CurseForge.
+#
+# Deliberately a second workflow rather than a step of release.yml, and deliberately keyed on
+# `release: published` rather than on the tag.
+#
+# release.yml stops at a draft on purpose: publishing is a decision, not a side effect of
+# pushing a tag (CLAUDE.md section 12). Pressing "Publish release" on GitHub is that decision,
+# and this workflow treats it as the trigger -- so the human judgement stays where it was, and
+# only the typing is automated. A tag-triggered upload would have quietly removed the
+# decision, since a file uploaded to CurseForge is public the moment it lands: there is no
+# draft there to take it back from.
+
+name: Publish to CurseForge
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release tag to publish, for example 1.2.0
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  CURSEFORGE_PROJECT_ID: "1675679"
+
+jobs:
+  upload:
+    name: ${{ matrix.mc }} ${{ matrix.loader }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      # NOT fail-fast, unlike release.yml, and for the opposite reason. Building is atomic:
+      # cancelling the rest of a doomed run costs nothing, and a release missing a version
+      # quietly is worse than no release. Uploading is not atomic: by the time one file fails,
+      # earlier ones are already public, and cancelling the rest would leave the project
+      # half-published, which is the state that is hardest to reason about. Every file is
+      # attempted, and the summary says which ones did not make it.
+      fail-fast: false
+      matrix:
+        include:
+          # java is the version of the bytecode in the jar, which CurseForge asks for per file.
+          # It is not the JDK that ran Gradle: 1.16.5 is built by a JDK 17 toolchain down to
+          # Java 8 bytecode, because the game itself runs on 8 there.
+          - mc: "1.7.10"
+            loader: forge
+            java: "8"
+            file: actuallyplayed-1.7.10-*.jar
+          - mc: "1.12.2"
+            loader: forge
+            java: "8"
+            file: actuallyplayed-1.12.2-*.jar
+          - mc: "1.16.5"
+            loader: forge
+            java: "8"
+            file: actuallyplayed-forge-1.16.5-*.jar
+          - mc: "1.16.5"
+            loader: fabric
+            java: "8"
+            file: actuallyplayed-fabric-1.16.5-*.jar
+            dependencies: fabric-api(required)
+          - mc: "1.20.1"
+            loader: forge
+            java: "17"
+            file: actuallyplayed-forge-1.20.1-*.jar
+          - mc: "1.20.1"
+            loader: fabric
+            java: "17"
+            file: actuallyplayed-fabric-1.20.1-*.jar
+            dependencies: fabric-api(required)
+          - mc: "1.21.1"
+            loader: neoforge
+            java: "21"
+            file: actuallyplayed-neoforge-1.21.1-*.jar
+          - mc: "1.21.1"
+            loader: fabric
+            java: "21"
+            file: actuallyplayed-fabric-1.21.1-*.jar
+            dependencies: fabric-api(required)
+
+    steps:
+      - name: Refuse to start without a token
+        env:
+          TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "The CURSEFORGE_TOKEN secret is not set on this repository."
+            echo "Create a token at https://legacy.curseforge.com/account/api-tokens and add"
+            echo "it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Work out which release is being published
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          # The release body rather than CHANGELOG.md: it is the text a reader has already
+          # seen on GitHub, and the two are meant to say the same thing. Taking it from one
+          # place means they cannot disagree.
+          gh release view "$TAG" --repo "${{ github.repository }}" --json body \
+            --jq .body > changelog.md
+          gh release download "$TAG" --repo "${{ github.repository }}" \
+            --pattern "${{ matrix.file }}" --dir dist
+          ls -l dist
+
+      - name: Upload to CurseForge
+        uses: Kira-NT/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ env.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          files: dist/${{ matrix.file }}
+          name: Actually Played ${{ steps.release.outputs.tag }} for ${{ matrix.mc }} (${{ matrix.loader }})
+          version: ${{ matrix.mc }}-${{ steps.release.outputs.tag }}
+          version-type: release
+          changelog-file: changelog.md
+          game-versions: ${{ matrix.mc }}
+          loaders: ${{ matrix.loader }}
+          java: ${{ matrix.java }}
+          dependencies: ${{ matrix.dependencies }}
+          # Off: this workflow runs because a GitHub release was published, and publishing to
+          # the release that triggered it would be circular.
+          github-token: ""
+          modrinth-token: ""
