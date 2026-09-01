@@ -591,6 +591,12 @@ through a `Supplier` on every use, so a setting changed in game applies immediat
 
 ## 12. Release
 
+> **The procedure itself is in `RELEASING.md`**, and `tools/release.py` does its mechanical
+> half: the three version files, the ten `update.json` entries, and the update note derived
+> from the changelog. This section holds the reasoning behind the rules, which is what a
+> checklist cannot carry.
+
+
 - **Version scheme: `MCVERSION-MAJOR.MINOR.PATCH`**, e.g. `1.12.2-1.0.0`. The Forge
   convention adds `MAJORAPI`, which would sit at zero forever here: this mod publishes no
   Java API and touches no world data. A `MAJOR` bump is reserved for a `playtime.json`
