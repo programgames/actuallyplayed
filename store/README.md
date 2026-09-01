@@ -5,7 +5,7 @@ the mod claims travels with the change to what it does.
 
 | File | Where it goes |
 | --- | --- |
-| `summary.txt` | The short blurb, on both platforms. 227 characters; Modrinth caps it at 256. |
+| `summary.txt` | The short blurb, on both platforms. 150 characters. CurseForge truncates this field at 160; Modrinth allows 256. |
 | `curseforge-description.md` | The CurseForge description tab. |
 | `modrinth-description.md` | The Modrinth description tab. |
 

@@ -1,1 +1,1 @@
-Tracks how much time you actually played on each server and world, and how much of it you were just AFK. Client-side only, works on any server, no dependencies. Read it in the vanilla Statistics screen. Forge, NeoForge, Fabric.
+Tracks your real playtime and your AFK time on each server and world. Client-side only, works on any server, no dependencies. Forge, NeoForge, Fabric.
