@@ -2,7 +2,7 @@
   {
     "modid": "actuallyplayed",
     "name": "Actually Played",
-    "description": "Measures how long you spend on each server and in each singleplayer world, telling time you actually played apart from time you were AFK. Client-side only, works on any server. Open it from the Statistics screen.",
+    "description": "Tracks how much time you actually played on each server and world, and how much of it you were just AFK. Client-side only, works on any server, no dependencies. Read it in the vanilla Statistics screen. Forge, NeoForge, Fabric.",
     "version": "${version}",
     "mcversion": "${mcversion}",
     "url": "https://github.com/programgames/actuallyplayed",
